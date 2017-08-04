@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>berry&#39;s blog</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="https://sonata.life/"/>
+  <updated>2017-08-04T09:03:40.000Z</updated>
+  <id>https://sonata.life/</id>
+  
+  <author>
+    <name>Berry Yan</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>mysql 主从环境搭建</title>
+    <link href="https://sonata.life/2017/08/05/mysql-replication/"/>
+    <id>https://sonata.life/2017/08/05/mysql-replication/</id>
+    <published>2017-08-04T16:00:00.000Z</published>
+    <updated>2017-08-04T09:03:40.000Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="安装mysql"><a href="#安装mysql" class="headerlink" title="安装mysql"></a>安装mysql</h3><p>创建文件</p>
+<p><code>mkdir /data/mysql/</code></p>
+<p>使用通用二进制文件安装<br><code>scp mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz username@hostname:/data/mysql/</code><br><a id="more"></a></p>
+<p>解压<br><code>tar mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz -C /data/mysql</code></p>
+<p>复制制定目录下的全部文件到另一个目录中<br><code>cp -r dir1/. dir2</code></p>
+<p>生成data目录<br><code>bin/mysql_install_db --user=mysql --datadir=/data/mysql/data/</code></p>
+<p>初始化<br><code>bin/mysqld --initialize-insecure --user=mysql --basedir=/data/mysql/ --datadir=/data/mysql/data/</code><br><code>bin/mysqld --defaults-file=/data/mysql/my.cnf --initialize-insecure --user=mysql</code></p>
+<p>修改文件所有者<br><code>chown -R mysql .</code></p>
+<p>启动<br><code>bin/mysqld_safe --user=mysql &amp;</code></p>
+<p>进入<br><code>mysql -uroot -S mysql.sock</code></p>
+<p>查看版本<br><code>mysql&gt; select version();
++------------+
+| version()  |
++------------+
+| 5.7.17-log |
++------------+
+1 row in set (0.05 sec)</code></p>
+<p><br><br><br></p>
+<h3 id="主从配置"><a href="#主从配置" class="headerlink" title="主从配置"></a>主从配置</h3><p>设置主机配置<br><code>[mysqld]</code><br><code>log-bin=mysql-bin</code><br><code>server-id=1</code></p>
+<p>设置主机用户<br><code>mysql&gt; grant replication slave on *.* TO ‘repl’@‘%’ identified by ’slavepass’;</code><br><code>mysql&gt; flush privileges;</code></p>
+<p>确定当前的二进制日志文件名和位置<br><code>mysql&gt; show master status\G</code></p>
+<p>设置从站配置<br><code>[mysqld]</code><br><code>server-id=2</code></p>
+<p>启动从站<br><code>bin/mysqld_safe --skip-slave-start &amp;</code></p>
+<p>从站设置<br><code>mysql&gt; CHANGE MASTER TO</code><br><code>-&gt; MASTER_HOST=&#39;master_host_name’,</code><br><code>-&gt; MASTER_PORT=3306,</code><br><code>-&gt; MASTER_USER=&#39;replication_user_name’,</code><br><code>-&gt; MASTER_PASSWORD=&#39;replication_password’,</code><br><code>-&gt; MASTER_LOG_FILE=&#39;recorded_log_file_name’,</code><br><code>-&gt; MASTER_LOG_POS=recorded_log_position;</code></p>
+<p>查看从线程状态<br><code>mysql&gt; show slave status\G</code></p>
+<p>开启从线程<br><code>mysql&gt; start slave;</code></p>
+<p>关闭从线程<br><code>mysql&gt; stop slave;</code></p>
+<p>重置从线程<br><code>mysql&gt; reset slave ;</code></p>
+<p>重置从线程并删除内存中的连接信息<br><code>mysql&gt; reset slave all;</code></p>
+<p>reset slave all和reset slave的区别</p>
+<blockquote>
+<p>RESET SLAVE does not change any replication connection parameters such<br>as master host, master port, master user, or master password, which<br>are retained in memory. This means that START SLAVE can be issued<br>without requiring a CHANGE MASTER TO statement following RESET SLAVE.</p>
+</blockquote>
+<p><a href="https://dev.mysql.com/doc/refman/5.7/en/reset-slave.html" target="_blank" rel="external">https://dev.mysql.com/doc/refman/5.7/en/reset-slave.html</a></p>
+<p>重置主线程<br><code>mysql&gt; reset master ;</code></p>
+<blockquote>
+<p>Important The effects of <code>RESET MASTER</code> differ from those of <code>PURGE BINARY LOGS</code> in 2 key ways:</p>
+<ol>
+<li><p><code>RESET MASTER</code> removes all binary log files that are listed in the index file, leaving only a single, empty binary log file with a numeric suffix of .000001, whereas the numbering is not reset by <code>PURGE BINARY LOGS</code>.</p>
+</li>
+<li><p><code>RESET MASTER</code> is not intended to be used while any replication slaves are running. The behavior of <code>RESET MASTER</code> when used while slaves are running is undefined (and thus unsupported), whereas <code>PURGE BINARY LOGS</code> may be safely used while replication slaves are running.</p>
+</li>
+</ol>
+</blockquote>
+<p>关闭mysql进程<br><code>bin/mysqladmin -uroot -S mysql.sock shutdown</code></p>
+<p><br><br><br></p>
+<h3 id="多源复制"><a href="#多源复制" class="headerlink" title="多源复制"></a>多源复制</h3><p>从站设置<br><code>mysql&gt; CHANGE MASTER TO</code><br><code>-&gt; MASTER_HOST=&#39;master_host_name’,</code><br><code>-&gt; MASTER_PORT=3306,</code><br><code>-&gt; MASTER_USER=&#39;replication_user_name’,</code><br><code>-&gt; MASTER_PASSWORD=&#39;replication_password’,</code><br><code>-&gt; MASTER_LOG_FILE=&#39;recorded_log_file_name’,</code><br><code>-&gt; MASTER_LOG_POS=recorded_log_position</code><br><code>-&gt; for channel &#39;t1&#39;;</code></p>
+<p>查看单个channel状态<br><code>show slave status for channel &#39;t1&#39;\G</code></p>
+<p>停止单个channel的同步：<br><code>stop slave for channel &#39;t1&#39;;</code></p>
+<p>开启单个channel的同步：<br><code>start slave for channel &#39;t1&#39;;</code></p>
+<p>重置单个channel：<br><code>reset slave all for channel &#39;t1&#39;;</code></p>
+<p><br><br><br></p>
+<h3 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h3><p>my.cnf</p>
+<pre><code>[client]
+port = 3306
+socket = /data/mysql/mysql.sock
+[mysqld]
+log_bin = mysql-bin
+basedir = /data/mysql
+datadir = /data/mysql/data
+port = 3306
+server_id = 1
+socket = /data/mysql/mysql.sock
+
+net_read_timeout = 28800
+net_write_timeout = 28800
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+</code></pre><p>在线开启GTID<br>MySQL5.6开启GTID的功能需要重启服务器生效<br><code>mysql&gt; set global gtid_mode=ON;</code></p>
+<p>查看user<br><code>mysql&gt; select user,host from mysql.user;</code></p>
+<p>查看user权限<br><code>mysql&gt; show grants for repl;</code></p>
+<p><br><br><br></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p><a href="https://dev.mysql.com/doc/refman/5.7/en/binary-installation.html" target="_blank" rel="external">https://dev.mysql.com/doc/refman/5.7/en/binary-installation.html</a><br><a href="https://dev.mysql.com/doc/refman/5.7/en/replication.html" target="_blank" rel="external">https://dev.mysql.com/doc/refman/5.7/en/replication.html</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h3 id=&quot;安装mysql&quot;&gt;&lt;a href=&quot;#安装mysql&quot; class=&quot;headerlink&quot; title=&quot;安装mysql&quot;&gt;&lt;/a&gt;安装mysql&lt;/h3&gt;&lt;p&gt;创建文件&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;mkdir /data/mysql/&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;使用通用二进制文件安装&lt;br&gt;&lt;code&gt;scp mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz username@hostname:/data/mysql/&lt;/code&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="mysql replication" scheme="https://sonata.life/tags/mysql-replication/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>域名解析—— A 记录、CNAME 和 URL 转发区别</title>
+    <link href="https://sonata.life/2017/02/10/dns-records/"/>
+    <id>https://sonata.life/2017/02/10/dns-records/</id>
+    <published>2017-02-09T16:00:00.000Z</published>
+    <updated>2017-08-04T09:03:09.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>我们在做域名解析时，尤其是很多虚拟主机，大都会使用到 <code>CNAME</code> 解析，独立主机、VPS 则用 A 记录较多，而 URL 转发则会在更换域名时用到，从设置效果来看，都是“解析”到一个“其它” URL 地址，而实际上它们之间还是有些区别的，尤其是 URL 转发和其它两个之间区别很大的。<br><a id="more"></a></p>
+<p>之前阿里云买的万网域名都是用 A 记录直接映射到 ECS 的 IP 地址，<br>万网要实名认证这点太坑，太容易被 whois 。所以这次域名过期后就买了一个 <code>GoDaddy</code> 的域名，而且用了加密邮箱 <code>ProtonMail</code> 来注册。</p>
+<p>需要把我的 github pages 博客绑定这个新域名 <a href="https://sonata.life">sonata.life</a> , 在设置域名解析的时候，不知道 URL 转发和 CNAME 的区别，因此遇到了一些问题：</p>
+<p><code>显示：网页无法正常使用 重定向次数过多</code></p>
+<p>查了一些 <a href="http://mushuichuan.com/2015/12/15/dnsseting/" target="_blank" rel="external">资料</a> 解决以后，这里来总结一下域名解析。<br><br></p>
+<h3 id="名词"><a href="#名词" class="headerlink" title="名词"></a>名词</h3><p><strong>域名A记录：</strong> A <code>(Address)</code> 记录是域名与 IP 对应的记录。</p>
+<p>CNAME记录：CNAME 也是一个常见的记录类别，它是一个域名与域名的别名<code>( Canonical Name )</code>对应的记录。当 DNS 系统在查询 CNAME 左面的名称的时候，都会转向 CNAME 右面的名称再进行查询，一直追踪到最后的 PTR 或 A 名称，成功查询后才会做出回应，否则失败。这种记录允许将多个名字映射到同一台计算机。</p>
+<p>与 A 记录不同的是，CNAME 别名记录设置的可以是一个域名的描述而不一定是 IP 地址。通常用于同时提供 WWW 和 MAIL 服务的计算机。</p>
+<p><strong>URL转发：</strong> 如果没有一台独立的服务器（也就是没有一个独立的IP地址）或者还有一个域名 B ，想访问 A 域名时访问到 B 域名的内容，这时就可以通过 URL 转发来实现。</p>
+<p>转发的方式有两种：隐性转发和显性转发</p>
+<p>隐性转发的时候 www.abc.com 跳转到 www.123.com 的内容页面以后，地址栏的域名并不会改变（仍然显示 www.abc.com ）。网页上的相对链接都会显示 www.abc.com<br><br></p>
+<h3 id="A记录、CNAME和URL转发的区别"><a href="#A记录、CNAME和URL转发的区别" class="headerlink" title="A记录、CNAME和URL转发的区别"></a>A记录、CNAME和URL转发的区别</h3><p>它们间区别如下：</p>
+<p>A记录 —— 映射域名到一个或多个IP。</p>
+<p>CNAME——映射域名到另一个域名（子域名）。</p>
+<p>URL转发——重定向一个域名到另一个 URL 地址，使用 HTTP 301状态码。</p>
+<ul>
+<li><p><strong>A 记录和 CNAME 属于标准的 DNS 记录，而 URL 转发则实际上只是个简单的重定向。因为 CNAME 是基于 ip 的，而 URL 转发是基于网址。</strong></p>
+</li>
+<li><p><strong>URL 转发可以转发到某一个目录下，甚至某一个文件上。而 CNAME 是不可以，这就是 URL 转发和 CNAME 的主要区别所在。</strong></p>
+</li>
+<li><p>CNAME 可以随意设，但 URL 转发在一些缺少网络自由的国家是被禁止的，因为 URL 转发还分显示和隐式，很容易造成误解。</p>
+</li>
+</ul>
+<p><br></p>
+<p>注意，无论是 A 记录、CNAME、URL 转发，在实际使用时是全部可以设置多条记录的。比如：</p>
+<pre><code>ftp.example.com A记录到 IP1，而mail.example.com则A记录到IP2
+
+ftp.example.com CNAME到  ftp.abc.com，而mail.example.com则CNAME到mail.abc.com
+
+ftp.example.com 转发到 ftp.abc.com，而mail.example.com则A记录到mail.abc.com
+</code></pre><p><br></p>
+<h3 id="A记录、CNAME、URL适用范围"><a href="#A记录、CNAME、URL适用范围" class="headerlink" title="A记录、CNAME、URL适用范围"></a>A记录、CNAME、URL适用范围</h3><p>了解以上区别，在应用方面：</p>
+<p>A记录——适应于独立主机、有固定IP地址</p>
+<p>CNAME——适应于虚拟主机、变动IP地址主机</p>
+<p>URL转发——适应于更换域名又不想抛弃老用户</p>
+<p><br></p>
+<p>参考资料：<br><a href="http://support.dnsimple.com/articles/differences-between-a-cname-alias-url/" target="_blank" rel="external">http://support.dnsimple.com/articles/differences-between-a-cname-alias-url/</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;我们在做域名解析时，尤其是很多虚拟主机，大都会使用到 &lt;code&gt;CNAME&lt;/code&gt; 解析，独立主机、VPS 则用 A 记录较多，而 URL 转发则会在更换域名时用到，从设置效果来看，都是“解析”到一个“其它” URL 地址，而实际上它们之间还是有些区别的，尤其是 URL 转发和其它两个之间区别很大的。&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="dns blog" scheme="https://sonata.life/tags/dns-blog/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>JVM 工作原理</title>
+    <link href="https://sonata.life/2016/10/28/java-jvm/"/>
+    <id>https://sonata.life/2016/10/28/java-jvm/</id>
+    <published>2016-10-27T16:00:00.000Z</published>
+    <updated>2017-08-04T09:01:46.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><strong>达到的目标</strong><br>知道Java虚拟机的生存周期<br>知道JVM的体系结构<br>知道JVM体系结构中的各个部分<br>能对JVM有个大致清晰的了解</p>
+<p><strong>内容</strong><br>JVM的生命周期<br>JVM的体系结构<br>JVM类加载器<br>JVM执行引擎<br>JVM运行时数据区<br><a id="more"></a></p>
+<ul>
+<li><strong>JVM的生命周期</strong></li>
+</ul>
+<p>一、首先分析两个概念<br><strong>JVM实例</strong>和<strong>JVM执行引擎实例</strong><br>（1）JVM实例对应了一个独立运行的java程序<br>     它是进程级别<br>（2）JVM执行引擎实例则对应了属于用户运行程序的线程<br>     它是线程级别的</p>
+<p>二、JVM的生命周期<br>（1）JVM实例的<strong>诞生</strong><br>当启动一个Java程序时，一个JVM实例就产生了，<br>任何一个拥有public static void main(String[] args)函数的class都可以作为JVM实例运行的起点<br>（2）JVM实例的<strong>运行</strong><br>main()作为该程序初始线程的起点，任何其他线程均由该线程启动。<br>JVM内部有两种线程：守护线程和非守护线程，main()属于非守护线程，<br>守护线程通常由JVM自己使用，java程序也可以标明自己创建的线程是守护线程。<br>（3）JVM实例的<strong>消亡</strong><br>当程序中的所有非守护线程都终止时，JVM才退出；<br>若安全管理器允许，程序也可以使用Runtime类或者System.exit()来退出。</p>
+<ul>
+<li><strong>JVM的体系结构</strong></li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image.png" alt="JVM的体系结构"></p>
+<p> JVM的内部体系结构分为三部分，<br>（1）<strong>类装载器（ClassLoader）子系统</strong><br>     作用: 用来装载.class文件<br>（2）<strong>执行引擎</strong><br>     作用:执行字节码，或者执行本地方法<br>（3）<strong>运行时数据区</strong><br>      方法区，堆，java栈，PC寄存器，本地方法栈</p>
+<p>具体划分为如下5个内存空间：（非常重要）<br><strong>程序计数器</strong>：保证线程切换后能恢复到原来的执行位置</p>
+<p><strong>虚拟机栈</strong>：（<strong>栈内存</strong>）为虚拟机执行java方法服务：方法被调用时创建栈帧–&gt;局部变量表-&gt;局部变量、对象引用</p>
+<p><strong>本地方法栈</strong>：为虚拟机执使用到的Native方法服务</p>
+<p><strong>堆内存</strong>：存放所有new出来的东西</p>
+<p><strong>方法区</strong>：存储被虚拟机加载的类信息、常量、静态常量、静态方法等。</p>
+<p><strong>运行时常量池</strong>（方法区的一部分）</p>
+<ul>
+<li><p><strong>JVM的体系结构之类加载器</strong></p>
+<p><strong>JVM将整个类加载过程划分为了三个步骤：</strong><br>（1）<strong>装载</strong><br>装载过程负责找到二进制字节码并加载至JVM中，<br>JVM通过类名、类所在的包名通过ClassLoader来完成类的加载，<br>同样，也采用以上三个元素来标识一个被加载了的类：类名+包名+ClassLoader实例ID。<br>（2）<strong>链接</strong><br>链接过程负责对二进制字节码的格式进行校验、<br>初始化装载类中的静态变量以及解析类中调用的接口、类。<br>在完成了校验后，JVM初始化类中的静态变量，并将其值赋为默认值。<br>最后一步为对类中的所有属性、方法进行验证，<br>以确保其需要调用的属性、方法存在，以及具备应的权限（例如public、private域权限等），<br>会造成NoSuchMethodError、NoSuchFieldError等错误信息。<br>（3）<strong>初始化</strong><br>初始化过程即为执行类中的静态初始化代码、构造器代码以及静态属性的初始化，<br>在四种情况下初始化过程会被触发执行：<br>1.调用了new；<br>2.反射调用了类中的方法；<br>3.子类调用了初始化；<br>4.JVM启动过程中指定的初始化类。</p>
+</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image2.png" alt="JVM类加载器"></p>
+<ul>
+<li><strong>执行引擎</strong></li>
+</ul>
+<p>JVM通过执行引擎来完成字节码的执行，在执行过程中JVM采用的是自己的一套指令系统，<strong>每个线程在创建后，都会产生一个程序计数器（pc）和栈（Stack）</strong>，其中程序计数器中存放了下一条将要执行的指令，Stack中存放Stack Frame，表示的为当前正在执行的方法，每个方法的执行都会产生Stack Frame，Stack Frame中存放了传递给方法的参数、方法内的局部变量以及操作数栈，操作数栈用于存放指令运算的中间结果，指令负责从操作数栈中弹出参与运算的操作数，指令执行完毕后再将计算结果压回到操作数栈，当方法执行完毕后则从Stack中弹出，继续其他方法的执行。</p>
+<p><strong>运行时数据区</strong><br>JVM在运行时将数据划分为了6个区域来存储，而不仅仅是大家熟知的Heap区域，这6个区域图示如下：<br><img src="https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image5.png" alt="运行时数据区"></p>
+<p>第一块： <strong>PC寄存器</strong><br>  PC寄存器是用于存储每个线程下一步将执行的JVM指令，如该方法为native的，则PC寄存器中不存储任何信息。<br>第二块：<strong>JVM栈</strong><br>  JVM栈是线程私有的，每个线程创建的同时都会创建JVM栈，JVM栈中存放的为当前线程中局部基本类型的变量（java中定义的八种基本类型：boolean、char、byte、short、int、long、float、double）、部分的返回结果以及Stack Frame、函数的参数值，非基本类型的对象在JVM栈上仅存放一个指向堆上的地址<br>第三块：<strong>堆（Heap）</strong><br>  Heap是大家最为熟悉的区域，它是JVM用来存储对象实例以及数组值的区域，可以认为Java中所有通过new创建的对象的内存都在此分配，Heap中的对象的内存需要等待GC进行回收。</p>
+<p>JVM将Heap分为New Generation和Old Generation（或Tenured Generation）两块来 进行管理：<br><img src="https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image6.png" alt="Heap"></p>
+<p>（1）New Generation<br>又称为新生代，程序中新建的对象都将分配到新生代中，<br>新生代又由Eden Space和两块Survivor Space构成，可通过-Xmn参数来指定其大小<br>（2） Old Generation<br>又称为旧生代，用于存放程序中经过几次垃圾回收还存活的对象，<br>例如缓存的对象等，旧生代所占用的内存大小即为-Xmx指定的大小减去-Xmn指定的大小。</p>
+<p>对堆的解释：<br>（1）堆是JVM中所有线程共享的，因此在其上进行对象内存的分配均需要进行加锁，这也导致了new对象的开销是比较大的<br>（2）鉴于上面的原因，Sun Hotspot JVM为了提升对象内存分配的效率，对于所创建的线程都会分配一块独立的空间，这块空间又称为TLAB（Thread Local Allocation Buffer），其大小由JVM根据运行的情况计算而得，在TLAB上分配对象时不需要加锁，因此JVM在给线程的对象分配内存时会尽量的在TLAB上分配，在这种情况下JVM中分配对象内存的性能和C基本是一样高效的，但如果对象过大的话则仍然是直接使用堆空间分配<br>（3）TLAB仅作用于新生代的Eden Space，因此在编写Java程序时，通常多个小的对象比大的对象分配起来更加高效，<br>但这种方法同时也带来了两个问题，一是空间的浪费，二是对象内存的回收上仍然没法做到像Stack那么高效，同时也会增加回收时的资源的消耗，可通过在启动参数上增加-XX:+PrintTLAB来查看TLAB这块的使用情况。</p>
+<p>第四块：<strong>方法区域（Method Area）</strong><br>  （1）方法区域存放了所加载的类的信息（名称、修饰符等）、类中的静态变量、类中定义为final类型的常量、类中的Field信息、类中的方法信息，当开发人员在程序中通过Class对象中的getName、isInterface等方法来获取信息时，这些数据都来源于方法区域，可见方法区域的重要性，同样，方法区域也是全局共享的，在一定的条件下它也会被GC；当方法区域需要使用的内存超过其允许的大小时，会抛出OutOfMemory的错误信息。<br>  （2）在Sun JDK中这块区域对应的为Permanet Generation，又称为持久代，默认为64M，可通过-XX:PermSize以及-XX:MaxPermSize来指定其大小。<br>第五块：<strong>运行时常量池（Runtime Constant Pool）</strong><br>  类似C中的符号表，存放的为类中的固定的常量信息、方法和Field的引用信息等，其空间从方法区域中分配。<br>第六块：<strong>本地方法堆栈（Native Method Stacks）</strong><br>  JVM采用本地方法堆栈来支持native方法的执行，此区域用于存储每个native方法调用的状态。</p>
+<ul>
+<li><strong>JVM的体系结构之内存回收</strong></li>
+</ul>
+<p>一、 JVM中自动的对象内存回收机制称为：GC（Garbage Collection）<br>1、 GC的基本原理：<br>为将内存中不再被使用的对象进行回收，GC中用于回收内存中不被使用的对象的方法称为收集器，<br>由于GC需要消耗一些资源和时间的，Java在对对象的生命周期特征进行分析后，<br>在V 1.2以上的版本采用了分代的方式来进行对象的收集，即按照新生代、旧生代的方式来对对象进行收集，<br>以尽可能的缩短GC对应用造成的暂停<br>（1）对新生代的对象的收集称为minor GC，<br>（2）对旧生代的对象的收集称为Full GC，<br>（3）程序中主动调用System.gc()强制执行的GC为Full GC，</p>
+<p>二、 JVM中自动内存回收机制<br>（1）<strong>引用计数收集器</strong><br>原理：<br>引用计数是标识Heap中对象状态最明显的一种方法，引用计数的方法简单来说<br>就是对每一个对象都提供一个关联的引用计数，以此来标识该对象是否被使用，<br>当这个计数为零时，说明这个对象已经不再被使用了。<br>优点：<br>引用计数的好处是可以不用暂停应用，当计数变为零时，<br>即可将此对象的内存空间回收，但它需要给每个对象附加一个关联引用计数<br>缺点：<br>并且引用计数无法解决循环引用的问题，因此JVM并没有采用引用计数。    </p>
+<p>2）<strong>跟踪收集器</strong><br>原理：<br>跟踪收集器的方法为停止应用的工作，然后开始跟踪对象，跟踪时从对象根开始沿着<br>引用跟踪，直到检查完所有的对象。<br>根对象的来源主要有三种：<br>1.被加载的类的常量池中的对象引用<br>2.传到本地方法中，没有被本地方法“释放”的对象引用<br>3.虚拟机运行时数据区中从垃圾收集器的堆中分配的部分<br>存在问题：<br>跟踪收集器采用的均为扫描的方法，但JVM将Heap分为了新生代和旧生代，<br>在进行minor GC时需要扫描是否有旧生代引用了新生代中的对象，<br>但又不可能每次minor GC都扫描整个旧生代中的对象，<br>因此JVM采用了一种称为卡片标记（Card Marking）的算法来避免这种现象。</p>
+<p>3）<strong>卡片标记算法</strong><br>卡片标记的算法为将旧生代以某个大小（例如512字节）进行划分，划分出来的每个区域称为卡片，<br>JVM采用卡表维护卡的状态，每张卡片在卡表中占用一个字节的标识（有些JVM实现可能会不同），<br>当Java代码执行过程中发现旧生代的对象引用或释放了对于新生代对象的引用时，<br>就相应的修改卡表中卡的状态，每次Minor GC只需扫描卡表中标识为脏状态的卡中的对象即可，<br>图示如下：<br><img src="https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image7.png" alt="卡片标记算法"></p>
+<p>1、跟踪收集器在扫描时最重要的是要根据这些对象是否被引用来标识其状态<br>2、JVM中将对象的引用分为了四种类型，不同的对象引用类型会造成GC采用不同的方法进行回收：<br>（1）<strong>强引用</strong>：默认情况下，对象采用的均为强引用            （这个对象的实例没有其他对象引用，GC时才会被回收）<br>（2）<strong>软引用</strong>：软引用是Java中提供的一种比较适合于缓存场景的应用            （只有在内存不够用的情况下才会被GC）<br>（3）<strong>弱引用</strong>：在GC时一定会被GC回收<br>（4）<strong>虚引用</strong>：由于虚引用只是用来得知对象是否被GC</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;strong&gt;达到的目标&lt;/strong&gt;&lt;br&gt;知道Java虚拟机的生存周期&lt;br&gt;知道JVM的体系结构&lt;br&gt;知道JVM体系结构中的各个部分&lt;br&gt;能对JVM有个大致清晰的了解&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;内容&lt;/strong&gt;&lt;br&gt;JVM的生命周期&lt;br&gt;JVM的体系结构&lt;br&gt;JVM类加载器&lt;br&gt;JVM执行引擎&lt;br&gt;JVM运行时数据区&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="java jvm" scheme="https://sonata.life/tags/java-jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>搭建 lnmp 遇到的各种 bug</title>
+    <link href="https://sonata.life/2016/07/28/lnmp-nginx-php-debug/"/>
+    <id>https://sonata.life/2016/07/28/lnmp-nginx-php-debug/</id>
+    <published>2016-07-27T16:00:00.000Z</published>
+    <updated>2017-08-04T09:02:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>由于一年前挖下的一个坑需要快速完成一个php的项目，于是在闲置了很久的阿里云服务器上装了 <code>lnmp</code> 的集成环境，选用了传言非常优雅的 <code>lumen</code> 框架，踏入了这个坑。<br>而在这个在 <code>lnmp</code> 上调试 <code>lumen</code> 的时候，遇到了各种各样的 <strong>bug</strong> ，下面挑几个讲一下，希望能帮到一些踩了同样坑的人 。<br><a id="more"></a></p>
+<p><strong>1. php弹出下载、不解析的问题</strong></p>
+<p>根据<a href="http://lnmp.org/install.html" target="_blank" rel="external">官方教程</a>的安装步骤安装好了 <code>lnmp</code> ，显示如下</p>
+<pre><code>+-------------------------------------------+
+|    Manager for LNMP, Written by Licess    |
++-------------------------------------------+
+|              http://lnmp.org              |
++-------------------------------------------+
+</code></pre><p>这时域名虽然解析到了服务器上，但是还没配置虚拟主机显然是404错误的。<br>所以需要去修改 <code>Nginx</code> 的配置文件 <code>nginx.conf</code> 来配置虚拟主机</p>
+<p>作为一个面向google编程的人，google以后，看到了这个教程</p>
+<blockquote>
+<p>nginx的配置、虚拟主机、负载均衡和反向代理<a href="https://www.zybuluo.com/phper/note/89391" target="_blank" rel="external">（1）</a>,<a href="https://www.zybuluo.com/phper/note/90310" target="_blank" rel="external">（2）</a>,<a href="https://www.zybuluo.com/phper/note/133244" target="_blank" rel="external">（3）</a>。</p>
+</blockquote>
+<p>相当详细地介绍了 <code>nginx.conf</code> 配置文件各个部分的含义</p>
+<p>照着这个改了一下地方<br> <code>nginx -t</code> <strong>检查语法错误</strong><br> <code>nginx -s reload</code> <strong>重启nginx</strong></p>
+<p>这一改出现了一个严重的bug，<br>输入 url 以后入口文件 index.php 直接弹出下载，没有解析</p>
+<p><a href="http://lnmp.org/faq/lnmp-Nginx-502-Bad-Gateway.html" target="_blank" rel="external"><strong>解决：</strong></a></p>
+<blockquote>
+<p>自己修改过下面2处的配置，导致nginx配置文件里的设置和php-fpm上的设置不一样。如果使用unix套接字，修改<br>/usr/local/php/etc/php-fpm.cnf 里设置， php 5.2为 /tmp/php-cgi.sock php<br>5.3及以上版本为 listen = /tmp/php-cgi.sock ，</p>
+<p>同时  /usr/local/nginx/conf/nginx.conf 及其 /usr/local/nginx/conf/vhost/<br>下面的虚拟主机配置里的 fastcgi_pass unix:/tmp/php-cgi.sock;  不一致就必定502。</p>
+<p>有时候unix套接字模式下可能会502， 可以尝试改成tcp/ip的方式  php 5.2下 /tmp/php-cgi.sock 替换为<br>127.0.0.1:9000 php 5.3及以上版本 listen = /tmp/php-cgi.sock 替换为 listen = 127.0.0.1:9000， nginx配置文件及虚拟主机配置文件里 fastcgi_pass unix:/tmp/php-cgi.sock; 替换为 fastcgi_pass 127.0.0.1:9000; </p>
+<p>之后重启试试。</p>
+<p>还需要补充的就是不要按网上找到的教程随便修改配置，网上找到的可能会路径不一样，也可能会导致502或有相关的错误产生。</p>
+</blockquote>
+<p>于是用回了默认的nginx.conf文件</p>
+<pre><code>user  www www;
+
+worker_processes auto;
+
+error_log  /home/wwwlogs/nginx_error.log  crit;
+
+pid        /usr/local/nginx/logs/nginx.pid;
+
+#Specifies the value for maximum file descriptors that can be opened by this process.
+worker_rlimit_nofile 51200;
+
+events
+    {
+        use epoll;
+        worker_connections 51200;
+        multi_accept on;
+    }
+
+http
+    {
+        include       mime.types;
+        default_type  application/octet-stream;
+
+        server_names_hash_bucket_size 128;
+        client_header_buffer_size 32k;
+        large_client_header_buffers 4 32k;
+        client_max_body_size 50m;
+
+        sendfile   on;
+        tcp_nopush on;
+
+        keepalive_timeout 60;
+
+        tcp_nodelay on;
+
+        fastcgi_connect_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_read_timeout 300;
+        fastcgi_buffer_size 64k;
+        fastcgi_buffers 4 64k;
+        fastcgi_busy_buffers_size 128k;
+        fastcgi_temp_file_write_size 256k;
+
+        gzip on;
+        gzip_min_length  1k;
+        gzip_buffers     4 16k;
+        gzip_http_version 1.1;
+        gzip_comp_level 2;
+        gzip_types     text/plain application/javascript application/x-javascript text/javascript text/css application/xml application/xml+rss;
+        gzip_vary on;
+        gzip_proxied   expired no-cache no-store private auth;
+        gzip_disable   &quot;MSIE [1-6]\.&quot;;
+
+        #limit_conn_zone $binary_remote_addr zone=perip:10m;
+        ##If enable limit_conn_zone,add &quot;limit_conn perip 10;&quot; to server section.
+
+        server_tokens off;
+
+        #log format
+        log_format  access  
+        &apos;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &apos;
+        &apos;$status $body_bytes_sent &quot;$http_referer&quot; &apos;
+    &apos;&quot;$http_user_agent&quot; $http_x_forwarded_for&apos;;
+        access_log off;
+
+server
+    {
+        listen 80 default_server;
+        #listen [::]:80 default_server ipv6only=on;
+        server_name www.lnmp.org;
+        index index.html index.htm index.php;
+        root  /home/wwwroot/default;
+
+        #error_page   404   /404.html;
+        include enable-php.conf;
+
+        location /nginx_status
+        {
+            stub_status on;
+            access_log   off;
+        }
+
+        location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$
+        {
+            expires      30d;
+        }
+
+        location ~ .*\.(js|css)?$
+        {
+            expires      12h;
+        }
+
+        location ~ /\.
+        {
+            deny all;
+        }
+
+        access_log  /home/wwwlogs/access.log  access;
+    }
+include vhost/*.conf;
+}
+</code></pre><p>修改了 server 和 include </p>
+<pre><code>    server {
+            listen  80;
+            server_name  127.0.0.1;
+            location / {
+                root   /home/wwwroot/default;
+                index  index.html index.htm;
+        }
+
+    }
+
+include /usr/local/nginx/conf/vhost/*;
+</code></pre><p>lnmp配置vhost时生成的 servername.conf</p>
+<pre><code>server
+    {
+        listen 80;
+        #listen [::]:80;
+
+        #server-name为自定义
+        server_name server-name;
+        index index.html index.htm index.php default.html default.htm default.php;
+
+        #server-name,project-name为自定义
+        root  /home/wwwroot/server-name/project-name/public;
+
+        include 子域名.conf;
+        #error_page   404   /404.html;
+        location ~ [^/]\.php(/|$)
+        {
+            # comment try_files $uri =404; to enable pathinfo
+            try_files $uri =404;
+            fastcgi_pass  unix:/tmp/php-cgi.sock;
+            fastcgi_index index.php;
+            include fastcgi.conf;
+            #include pathinfo.conf;
+        }
+
+        location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$
+        {
+            expires      30d;
+        }
+
+        location ~ .*\.(js|css)?$
+        {
+            expires      12h;
+        }
+
+        #server-name为自定义
+        access_log  /home/wwwlogs/server-name.log access;
+    }
+</code></pre><p><strong>2. error_log，LNMP下如何开启PHP错误日志</strong><br>解析 php 文件的问题解决了，出现了的却不是欢迎页面而是 <strong>http error 500</strong><br>而且 lnmp 下的错误需要在 <code>/usr/local/php/etc/php-fpm.conf</code> 里设置，错误信息才会记录到 <code>php-fpm.conf</code> 里 <code>error_log</code> 设置的文件里</p>
+<p><a href="http://lnmp.org/faq.html" target="_blank" rel="external"><strong>解决</strong></a></p>
+<blockquote>
+<p>LNMP下的错误需要在/usr/local/php/etc/php-fpm.conf里设置，</p>
+<p>加上catch_workers_output = yes，</p>
+<p>错误信息就会记录到php-fpm.conf里error_log设置的文件里。</p>
+<p>或php-fpm.conf里加上</p>
+<p>php_admin_value[error_log] = /usr/local/php/var/log/php-error.log</p>
+<p>php_admin_flag[log_errors] = on</p>
+<p>上述两种方法都行，重启php-fpm生效</p>
+<p>同理php.ini里的display_errors也是需要在php-fpm.conf里设置的，</p>
+<p>加上php_flag[display_errors] = On就开启了。</p>
+<p>有时可能错误日志文件不自动创建，</p>
+<p>可以执行：touch /usr/local/php/var/log/php-error.log &amp;&amp; chown www:www<br>/usr/local/php/var/log/php-error.log</p>
+</blockquote>
+<p><strong>3. open_basedir</strong><br>成功在 <code>error_log</code> 里面记录下产生 <code>http error 500</code> 的 php日志 后，<br>下面来分析日志来解决产生 <code>http error 500</code> 的原因</p>
+<pre><code>[28-Jul-2016 14:45:12] WARNING: [pool www] child 6795 said into stderr: &quot;NOTICE: PHP message: PHP Warning:  require(): open_basedir restriction in effect. File(/home/wwwroot/server-name/project-name/bootstrap/app.php) is not within the allowed path(s): (/home/wwwroot/server-name/project-name/public:/tmp/:/proc/) in /home/wwwroot/server-name/project-name/public/index.php on line 14&quot;
+[28-Jul-2016 14:45:12] WARNING: [pool www] child 6795 said into stderr: &quot;NOTICE: PHP message: PHP Warning:  require(/home/wwwroot/server-name/project-name/bootstrap/app.php): failed to open stream: Operation not permitted in /home/wwwroot/server-name/project-name/public/index.php on line 14&quot;
+[28-Jul-2016 14:45:12] WARNING: [pool www] child 6795 said into stderr: &quot;NOTICE: PHP message: PHP Fatal error:  require(): Failed opening required &apos;/home/wwwroot/server-name/project-name/public/../bootstrap/app.php&apos; (include_path=&apos;.:/usr/local/php/lib/php&apos;) in /home/wwwroot/server-name/project-name/public/index.php on line 14&quot;
+</code></pre><p>这个报错的意思就是说open_basedir受到了限制</p>
+<p><a href="http://www.oschina.net/question/878142_106780" target="_blank" rel="external"><strong>解决</strong></a></p>
+<p><code>php.ini</code> 中的 <code>open_basedir</code> 参数，<br>设置这个参数即可限定php脚本的访问范围。<br>我们针对每个站点，需要php能够访问该站点所在目录以及<code>/tmp/</code>临时目录。</p>
+<blockquote>
+<p>open_basedir=.:/tmp/   冒号的作用是隔开多个路径，这里面根据字面理解，第一个点就代表当前目录。</p>
+<p>看起来是很完美了，OK，保存配置，重启php-fpm</p>
+<p>结果nginx 报502错误。</p>
+<p>研究了一会，发现 . 这种相对路径写法，至少在nginx+phpfastcgi下是行不通的。</p>
+<p>好吧，暂时妥协</p>
+<p>open_basedir=/home/wwwroot/:/tmp/</p>
+<p>这样总行了，将php限制在所有站点的父目录，这样至少阻止了php访问服务器上web目录以外的目录。</p>
+<p>到了这里，还是有隐患的，只要wwwroot下任意一个站点被拿到webshell，那么其他站点将不能幸免.</p>
+<p>不甘心哪，度娘是找不到有用的信息了，都是些垃圾复制粘贴，于是去了谷歌。</p>
+<p>搜了一下，找到一个遇到同样问题的鬼佬，里面有人给了一个方法，成功解决。</p>
+<p>那就是在nginx 每个server下，加上</p>
+<p>fastcgi_param  PHP_VALUE  “open_basedir=$document_root:/tmp/“; </p>
+<p>重启nginx，成功！你也可以把这行代码放到fastcgi.conf里，前提是你得在server{}中包含它。</p>
+<p>至此，nginx + php5.3 是没有问题了。</p>
+<p>然后我又在另外一台vps上，环境是php5.2 发现此方法不生效。</p>
+</blockquote>
+<p><code>php -v</code> <strong>查看php版本</strong></p>
+<pre><code>PHP 5.5.25 (cli) (built: Mar  9 2016 20:26:17) Copyright (c) 1997-2015 The PHP Group Zend Engine v2.5.0, Copyright (c) 1998-2015 Zend Technologies
+    with Zend Guard Loader v3.3, Copyright (c) 1998-2014, by Zend Technologies
+    with Zend OPcache v7.0.4-dev, Copyright (c) 1999-2015, by Zend Technologies
+</code></pre><p>php版本是5.5,但是试了最后这个办法也不支持。<br>由于现在服务器上只有一个站点，所以暂时先用 <code>open_basedir=/home/wwwroot/:/tmp/</code> 凑合着，<br>看看之后能不能解决这个问题。</p>
+<p><code>lnmp restart</code> <strong>重启lnmp</strong></p>
+<pre><code>NOTICE: Finishing ...
+NOTICE: exiting, bye-bye!
+NOTICE: fpm is running, pid 12097
+NOTICE: ready to handle connections
+</code></pre><p>刷新，最后终于出现了期待已久的lumen欢迎页面~~</p>
+<p><strong>最后：</strong></p>
+<p>到这里为止，环境算是搭建好了。<br>lnmp环境是web应用很常见的环境，现在算是对它的目录结构有了一个基本的认识。</p>
+<p>还有Nginx的负载均衡和反向代理和HTTP缓存，也是非常值得深入去学习的。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;由于一年前挖下的一个坑需要快速完成一个php的项目，于是在闲置了很久的阿里云服务器上装了 &lt;code&gt;lnmp&lt;/code&gt; 的集成环境，选用了传言非常优雅的 &lt;code&gt;lumen&lt;/code&gt; 框架，踏入了这个坑。&lt;br&gt;而在这个在 &lt;code&gt;lnmp&lt;/code&gt; 上调试 &lt;code&gt;lumen&lt;/code&gt; 的时候，遇到了各种各样的 &lt;strong&gt;bug&lt;/strong&gt; ，下面挑几个讲一下，希望能帮到一些踩了同样坑的人 。&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="nginx php" scheme="https://sonata.life/tags/nginx-php/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>总结一些 git 的日常命令</title>
+    <link href="https://sonata.life/2016/07/21/git-cmd/"/>
+    <id>https://sonata.life/2016/07/21/git-cmd/</id>
+    <published>2016-07-20T16:00:00.000Z</published>
+    <updated>2017-08-04T09:04:32.000Z</updated>
+    
+    <content type="html"><![CDATA[<ul>
+<li>本地仓库初始化<br><code>$ git init</code><br><br></li>
+<li>clone 远程仓库<br><code>$ git clone ssh_key</code><br><br></li>
+<li>查看当前版本状态<br><code>$ git status</code><br><br><a id="more"></a></li>
+<li>添加 README 文件至暂存区（add 可多次）<br><code>$ git add README</code><br><br></li>
+<li>添加 文件夹中所有文件进暂存区 ( “.” 代表全部)<br><code>$ git add .</code><br><br></li>
+<li>提交暂存区全部内容<br><code>$ git commit -m &quot;注释&quot;</code><br><br></li>
+<li>查看文件a.php改变( + 表示新增行 ，- 表示删除行)<br><code>$ git diff README</code><br><br></li>
+<li>推送你的更新到远程服务器,语法为 git push [远程名] [本地分支]:[远程分支]<br><code>$ git push origin master</code><br><br></li>
+<li>如果不再需要某个远程分支了，比如搞定了某个特性并把它合并进了远程的 master 分支（或任何其他存放稳定代码的分支），可以用这个非常无厘头的语法来删除它。因为省略 [本地分支]，那就等于是在说“在这里提取空白然后把它变成[远程分支]”。<br><code>$ git push [远程名] :[分支名]</code><br><br></li>
+<li>查看提交的历史记录<br><code>$ git log</code></li>
+</ul>
+<p><br><br><br><br><strong>git如何删除远程仓库的某次错误提交</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;reset命令的三种方式</p>
+<ol>
+<li><p><code>$ git reset –mixed</code></p>
+<p>默认方式，不带任何参数的git reset，就是这种方式，它回退到某个版本，只保留源码，回退commit和stage信息</p>
+</li>
+<li><p><code>$ git reset –soft</code></p>
+<p>回退到某个版本， 只回退了commit的信息，不会恢复stage（如果还要提交，直接commit即可)</p>
+</li>
+<li><p><code>$ git reset –hard</code></p>
+<p>彻底回退到某个版本， 本地的源码也会变为上一个版本的内容)</p>
+</li>
+</ol>
+<p><br><br><strong>主要方法</strong><br>1) 在本地 , 把远程的 master 分支删除<br>2) 再把 reset 后的分支内容给 push 上去</p>
+<ul>
+<li>新建 old_master 分支,作为备份<br><code>$ git branch old_master</code><br><br></li>
+<li>将本地的 old_master 分支,推送到远程的 old_master<br><code>$ git push origin old_master:old_master</code><br><br></li>
+<li>本地仓库,彻底回退到某一个版本<br><code>$ git reset –-hard  版本号</code><br><br></li>
+<li><p>删除远程的 master 分支, 删除 master 前注意：    </p>
+<ol>
+<li>如果是github,必须在web上登录到github, “Change default branch”为old_master</li>
+<li>因为default branch是master,是不能删除的。所以要先切换成old_master</li>
+</ol>
+<p><code>$ git push origin :master</code><br><br></p>
+</li>
+<li>重新创建远程master分支<br><code>$ git push origin master</code><br><br></li>
+</ul>
+<p>未完待续…</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;ul&gt;
+&lt;li&gt;本地仓库初始化&lt;br&gt;&lt;code&gt;$ git init&lt;/code&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;clone 远程仓库&lt;br&gt;&lt;code&gt;$ git clone ssh_key&lt;/code&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;查看当前版本状态&lt;br&gt;&lt;code&gt;$ git status&lt;/code&gt;&lt;br&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="git cmd" scheme="https://sonata.life/tags/git-cmd/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在 github pages 上用 Jekyll 和 DisQus 光速搭建 Blog</title>
+    <link href="https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/"/>
+    <id>https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/</id>
+    <published>2016-07-19T16:00:00.000Z</published>
+    <updated>2017-08-04T09:01:56.000Z</updated>
+    
+    <content type="html"><![CDATA[<p> <strong>前言</strong><br>学习总是需要时常写文章总结一下，之前是写在<code>Evernote</code>和微信公众号里面，不过没有blog好像又说不过去。<br>但是传统的<code>wordpress</code>的框架对我这个买了域名都懒得解析到服务器上的人实在是太冗余了。<br>于是google了一下，<code>github pages</code> +<code>Jekyll</code> 的呼声很高，尝试了一下，天啦噜，无比顺滑。<br>这个 blog 全部建完，添加上评论功能，加上写这篇文章，一共大概用了一天左右的时间，还算是挺快的了。<br>于是特此总结一下这个光速搭建blog的方法。<br><a id="more"></a><br><strong>主要参考教程</strong><br><a href="http://kresnik.wang/works/tech/2015/06/07/在github-pages网站下用jekyll制作博客教程.html" target="_blank" rel="external">在 GitHub Pages 下用 Jekyll 制作博客</a>（很详细）<br><a href="https://gaohaoyang.github.io/2016/03/12/jekyll-theme-version-2.0/" target="_blank" rel="external">使用 Jekyll 的过程中可能会遇到的一些问题</a><br><a href="http://www.perfectlyrandom.org/2014/06/29/adding-disqus-to-your-jekyll-powered-github-pages/" target="_blank" rel="external">Adding Disqus to your Jekyll</a></p>
+<p><strong>遇到的问题：</strong><br>1.由于找的这个Theme里的图标是png格式的图片，想要换成这个种类更丰富的<a href="http://www.iconfont.cn" target="_blank" rel="external">矢量图标</a> , 不知是不是框架的兼容问题，图标并不能显示，尝试多次后继续使用png中。<br>2.因为 <code>jekyll</code> 升级和端口占用方面遇到的一些问题 ，基本可以根据报错，参照上面的教程2解决。<br>3.<code>DisQus</code> 因为添加的地址是线上的，需要在线上进行测试 。</p>
+<p><strong>最后：</strong><br><code>Jekyll</code>和<code>DisQus</code>的功能还是超级丰富很值得继续去挖掘的，之后还会继续去好好研究一下来丰富这个blog</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt; &lt;strong&gt;前言&lt;/strong&gt;&lt;br&gt;学习总是需要时常写文章总结一下，之前是写在&lt;code&gt;Evernote&lt;/code&gt;和微信公众号里面，不过没有blog好像又说不过去。&lt;br&gt;但是传统的&lt;code&gt;wordpress&lt;/code&gt;的框架对我这个买了域名都懒得解析到服务器上的人实在是太冗余了。&lt;br&gt;于是google了一下，&lt;code&gt;github pages&lt;/code&gt; +&lt;code&gt;Jekyll&lt;/code&gt; 的呼声很高，尝试了一下，天啦噜，无比顺滑。&lt;br&gt;这个 blog 全部建完，添加上评论功能，加上写这篇文章，一共大概用了一天左右的时间，还算是挺快的了。&lt;br&gt;于是特此总结一下这个光速搭建blog的方法。&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="blog github" scheme="https://sonata.life/tags/blog-github/"/>
+    
+  </entry>
+  
+</feed>

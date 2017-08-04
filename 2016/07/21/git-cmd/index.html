@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="English"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> 总结一些 git 的日常命令 · berry's blog</title><meta name="description" content="总结一些 git 的日常命令 - Berry Yan"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://sonata.life/atom.xml" title="berry's blog"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="https://twitter.com/Spring_Sonata_" target="_blank" class="nav-list-link">TWITTER</a></li><li class="nav-list-item"><a href="https://github.com/strayberry" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">总结一些 git 的日常命令</h1><div class="post-info">Jul 21, 2016</div><div class="post-content"><ul>
+<li>本地仓库初始化<br><code>$ git init</code><br><br></li>
+<li>clone 远程仓库<br><code>$ git clone ssh_key</code><br><br></li>
+<li>查看当前版本状态<br><code>$ git status</code><br><br><a id="more"></a></li>
+<li>添加 README 文件至暂存区（add 可多次）<br><code>$ git add README</code><br><br></li>
+<li>添加 文件夹中所有文件进暂存区 ( “.” 代表全部)<br><code>$ git add .</code><br><br></li>
+<li>提交暂存区全部内容<br><code>$ git commit -m &quot;注释&quot;</code><br><br></li>
+<li>查看文件a.php改变( + 表示新增行 ，- 表示删除行)<br><code>$ git diff README</code><br><br></li>
+<li>推送你的更新到远程服务器,语法为 git push [远程名] [本地分支]:[远程分支]<br><code>$ git push origin master</code><br><br></li>
+<li>如果不再需要某个远程分支了，比如搞定了某个特性并把它合并进了远程的 master 分支（或任何其他存放稳定代码的分支），可以用这个非常无厘头的语法来删除它。因为省略 [本地分支]，那就等于是在说“在这里提取空白然后把它变成[远程分支]”。<br><code>$ git push [远程名] :[分支名]</code><br><br></li>
+<li>查看提交的历史记录<br><code>$ git log</code></li>
+</ul>
+<p><br><br><br><br><strong>git如何删除远程仓库的某次错误提交</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;reset命令的三种方式</p>
+<ol>
+<li><p><code>$ git reset –mixed</code></p>
+<p>默认方式，不带任何参数的git reset，就是这种方式，它回退到某个版本，只保留源码，回退commit和stage信息</p>
+</li>
+<li><p><code>$ git reset –soft</code></p>
+<p>回退到某个版本， 只回退了commit的信息，不会恢复stage（如果还要提交，直接commit即可)</p>
+</li>
+<li><p><code>$ git reset –hard</code></p>
+<p>彻底回退到某个版本， 本地的源码也会变为上一个版本的内容)</p>
+</li>
+</ol>
+<p><br><br><strong>主要方法</strong><br>1) 在本地 , 把远程的 master 分支删除<br>2) 再把 reset 后的分支内容给 push 上去</p>
+<ul>
+<li>新建 old_master 分支,作为备份<br><code>$ git branch old_master</code><br><br></li>
+<li>将本地的 old_master 分支,推送到远程的 old_master<br><code>$ git push origin old_master:old_master</code><br><br></li>
+<li>本地仓库,彻底回退到某一个版本<br><code>$ git reset –-hard  版本号</code><br><br></li>
+<li><p>删除远程的 master 分支, 删除 master 前注意：    </p>
+<ol>
+<li>如果是github,必须在web上登录到github, “Change default branch”为old_master</li>
+<li>因为default branch是master,是不能删除的。所以要先切换成old_master</li>
+</ol>
+<p><code>$ git push origin :master</code><br><br></p>
+</li>
+<li>重新创建远程master分支<br><code>$ git push origin master</code><br><br></li>
+</ul>
+<p>未完待续…</p>
+</div></article></div></main><footer><div class="paginator"><a href="/2016/07/28/lnmp-nginx-php-debug/" class="prev">PREV</a><a href="/2016/07/20/use-jekyll-and-disqus-build-blog/" class="next">NEXT</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
+var disqus_identifier = '2016/07/21/git-cmd/';
+var disqus_title = '总结一些 git 的日常命令';
+var disqus_url = 'https://sonata.life/2016/07/21/git-cmd/';
+(function() {
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();</script><script id="dsq-count-scr" src="//strayberry.disqus.com/count.js" async></script><div class="copyright"><p>© 2017 <a href="https://sonata.life">Berry Yan</a>, powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdn.bootcss.com/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML" integrity="sha384-crwIf/BuaWM9rM65iM+dWFldgQ1Un8jWZMuh3puxb8TOY9+linwLoI7ZHZT+aekW" crossorigin="anonymous"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-90039923-1",'auto');ga('send','pageview');</script></body></html>
