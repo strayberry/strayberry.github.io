@@ -1,6 +1,5 @@
 <!DOCTYPE html><html lang="English"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> mysql 优化之 group by · berry's blog</title><meta name="description" content="mysql 优化之 group by - Berry Yan"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://sonata.life/atom.xml" title="berry's blog"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="https://twitter.com/Spring_Sonata_" target="_blank" class="nav-list-link">TWITTER</a></li><li class="nav-list-item"><a href="https://github.com/strayberry" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">mysql 优化之 group by</h1><div class="post-info">Oct 19, 2017</div><div class="post-content"><hr>
-<p>###讲解如何优化之前先说说 <code>EXPLAIN</code> 命令的使用</p>
-<blockquote>
+<h3 id="讲解如何优化之前先说说-EXPLAIN-命令的使用"><a href="#讲解如何优化之前先说说-EXPLAIN-命令的使用" class="headerlink" title="讲解如何优化之前先说说 EXPLAIN 命令的使用"></a>讲解如何优化之前先说说 <code>EXPLAIN</code> 命令的使用</h3><blockquote>
 <p><strong>EXPLAIN 命令简介</strong></p>
 </blockquote>
 <p>MySQL 提供了一个 <code>EXPLAIN</code> 命令， 它可以对 <code>SELECT</code> 语句进行分析, 并输出 <code>SELECT</code> 执行的详细信息, 以供开发人员针对性优化。<br><code>EXPLAIN</code> 命令用法十分简单， 在 <code>SELECT</code> 语句前加上 <code>EXPLAIN</code> 就可以了。</p>
@@ -84,7 +83,7 @@ possible_keys: d_p_c
 <li><strong><code>extra</code>:</strong>&nbsp; 额外的信息</li>
 </ul>
 <p>接下来我们来重点看一下比较重要的几个字段。</p>
-<p>###select_type<br><strong>select_type</strong> 表示了查询的类型, 它的常用取值有:</p>
+<h3 id="select-type"><a href="#select-type" class="headerlink" title="select_type"></a>select_type</h3><p><strong>select_type</strong> 表示了查询的类型, 它的常用取值有:</p>
 <ul>
 <li><strong><code>SIMPLE</code></strong>, 表示此查询不包含 UNION 查询或子查询 </li>
 <li><strong><code>PRIMARY</code></strong>, 表示此查询是最外层的查询 </li>
@@ -95,8 +94,8 @@ possible_keys: d_p_c
 <li><strong><code>DEPENDENT SUBQUERY</code></strong>: 子查询中的第一个 SELECT, 取决于外面的查询. 即子查询依赖于外层查询的结果.</li>
 </ul>
 <p>最常见的查询类别应该是 <code>SIMPLE</code> 了, 比如当我们的查询没有子查询, 也没有 <code>UNION</code> 查询时, 那么通常就是 <code>SIMPLE</code> 类型。    </p>
-<p>###table<br>表示查询涉及的表或衍生表</p>
-<p>###type<br><strong>type</strong> 字段比较重要, 它提供了判断查询是否高效的重要依据依据. 通过 <strong>type</strong> 字段, 我们判断此次查询是 全表扫描 还是 索引扫描 等.</p>
+<h3 id="table"><a href="#table" class="headerlink" title="table"></a>table</h3><p>表示查询涉及的表或衍生表</p>
+<h3 id="type"><a href="#type" class="headerlink" title="type"></a>type</h3><p><strong>type</strong> 字段比较重要, 它提供了判断查询是否高效的重要依据依据. 通过 <strong>type</strong> 字段, 我们判断此次查询是 全表扫描 还是 索引扫描 等.</p>
 <p><strong>type</strong>常用的取值有:</p>
 <ul>
 <li><strong><code>system</code></strong>: 表中只有一条数据. 这个类型是特殊的 <code>const</code> 类型.</li>
@@ -111,9 +110,9 @@ possible_keys: d_p_c
 <p>通常来说, 不同的 type 类型的性能关系如下:</p>
 <pre><code>ALL &lt; index &lt; range ~ index_merge &lt; ref &lt; eq_ref &lt; const &lt; system
 </code></pre><p><code>ALL</code> 类型因为是全表扫描, 因此在相同的查询条件下, 它是速度最慢的.<br>而 <code>index</code> 类型的查询虽然不是全表扫描, 但是它扫描了所有的索引, 因此比 <code>ALL</code> 类型的稍快.<br>后面的几种类型都是利用了索引来查询数据, 因此可以过滤部分或大部分数据, 因此查询效率就比较高了.</p>
-<p>###possible_keys<br><code>possible_keys</code> 表示 MySQL 在查询时, 能够使用到的索引. 注意, 即使有些索引在 <code>possible_keys</code> 中出现, 但是并不表示此索引会真正地被 MySQL 使用到. MySQL 在查询时具体使用了哪些索引, 由 <code>key</code> 字段决定.</p>
-<p>###key<br>此字段是 MySQL 在当前查询时所真正使用到的索引.</p>
-<p>###key_len<br>表示查询优化器使用了索引的字节数. 这个字段可以评估组合索引是否完全被使用, 或只有最左部分字段被使用到.<br>key_len 的计算规则如下:</p>
+<h3 id="possible-keys"><a href="#possible-keys" class="headerlink" title="possible_keys"></a>possible_keys</h3><p><code>possible_keys</code> 表示 MySQL 在查询时, 能够使用到的索引. 注意, 即使有些索引在 <code>possible_keys</code> 中出现, 但是并不表示此索引会真正地被 MySQL 使用到. MySQL 在查询时具体使用了哪些索引, 由 <code>key</code> 字段决定.</p>
+<h3 id="key"><a href="#key" class="headerlink" title="key"></a>key</h3><p>此字段是 MySQL 在当前查询时所真正使用到的索引.</p>
+<h3 id="key-len"><a href="#key-len" class="headerlink" title="key_len"></a>key_len</h3><p>表示查询优化器使用了索引的字节数. 这个字段可以评估组合索引是否完全被使用, 或只有最左部分字段被使用到.<br>key_len 的计算规则如下:</p>
 <p><strong><code>字符串</code></strong></p>
 <ol>
 <li>char(n): n 字节长度</li>
@@ -137,8 +136,8 @@ possible_keys: d_p_c
 <ol>
 <li>NULL 属性 占用1字节. 如果一个字段是 NOT NULL 的, 则没有此属性.</li>
 </ol>
-<p>###rows<br><code>rows</code> 也是一个重要的字段. MySQL 查询优化器根据统计信息, 估算 SQL 要查找到结果集需要扫描读取的数据行数.<br>这个值非常直观显示 SQL 的效率好坏, 原则上 <code>rows</code> 越少越好.</p>
-<p>###Extra<br>Explain 中的很多额外的信息会在 Extra 字段显示, 常见的有以下几种内容:</p>
+<h3 id="rows"><a href="#rows" class="headerlink" title="rows"></a>rows</h3><p><code>rows</code> 也是一个重要的字段. MySQL 查询优化器根据统计信息, 估算 SQL 要查找到结果集需要扫描读取的数据行数.<br>这个值非常直观显示 SQL 的效率好坏, 原则上 <code>rows</code> 越少越好.</p>
+<h3 id="Extra"><a href="#Extra" class="headerlink" title="Extra"></a>Extra</h3><p>Explain 中的很多额外的信息会在 Extra 字段显示, 常见的有以下几种内容:</p>
 <ul>
 <li><strong><code>Using filesort</code></strong> 当 Extra 中有 <code>Using filesort</code> 时, 表示 MySQL 需额外的排序操作,  不能通过索引顺序达到排序效果. 一般有 <code>Using filesort</code>, 都建议优化去掉, 因为这样的查询 CPU 资源消耗大.</li>
 <li><strong><code>Using index</code></strong> “覆盖索引扫描”, 表示查询在索引树中就可查找所需数据, 不用扫描表数据文件, 往往说明性能不错</li>
@@ -151,8 +150,7 @@ possible_keys: d_p_c
 <p>满足 <code>GROUP BY</code> 语句最一般的方法是扫描整个表然后创建一个新的临时表，表中每个组的所有行的所有行为应该是连续的。然后用这个临时表找到组并应用累积函数（如果有）。在一些情况下，MYSQL 可以利用索引访问来避免创建临时表。</p>
 <p><code>GROUP BY</code>  使用到索引最重要的前提条件是，<code>GROUP BY</code> 所有的参照列（分组依据的列）来自于同一个索引，并且索引按照顺序存储所有的keys（ 即BTREE index，HASH index没有顺序的概念 ）。然而能否使用索引访问来代替临时表也依赖于索引中的哪部分被用于查询，为这些部分指定的条件，和选中的聚合函数。</p>
 <p>MYSQL 有两种方法可以使 <code>GROUP BY</code> 查询通过索引访问，就是下面说的 <code>Loose Index Scan</code> 和 <code>Tight Index Scan</code> 。在 <code>Loose Index Scan</code> 方式下，分组操作和范围预测（如果有的话）一起执行完成的。在 <code>Tight Index Scan</code> 方式下，先对索引执行范围扫描（range scan），再对结果元组进行分组。</p>
-<p>###1. <strong><code>Loose Index Scan</code></strong></p>
-<p> 松散索引扫描相当于Oracle中的跳跃索引扫描（skip index scan），就是不需要连续的扫描索引中得每一个元组，扫描时仅考虑索引中得一部分。当查询中没有where条件的时候，松散索引扫描读取的索引元组的个数和groups的数量相同。如果where条件包含范围预测，松散索引扫描查找每个group中第一个满足范围条件，然后再读取最少可能数的keys。松散索引扫描只需要读取很少量的数据就可以完成group by操作，因而执行效率非常高。使用松散索引扫描需要满足以下条件：</p>
+<h3 id="1-Loose-Index-Scan"><a href="#1-Loose-Index-Scan" class="headerlink" title="1. Loose Index Scan"></a>1. <strong><code>Loose Index Scan</code></strong></h3><p> 松散索引扫描相当于Oracle中的跳跃索引扫描（skip index scan），就是不需要连续的扫描索引中得每一个元组，扫描时仅考虑索引中得一部分。当查询中没有where条件的时候，松散索引扫描读取的索引元组的个数和groups的数量相同。如果where条件包含范围预测，松散索引扫描查找每个group中第一个满足范围条件，然后再读取最少可能数的keys。松散索引扫描只需要读取很少量的数据就可以完成group by操作，因而执行效率非常高。使用松散索引扫描需要满足以下条件：</p>
 <ul>
 <li><p>查询在单一表上。</p>
 </li>
@@ -196,8 +194,7 @@ possible_keys: channel
 <p>下面的查询不能够使用松散索引扫描</p>
 <p><code>SELECT DISTINCT COUNT(DISTINCT c1) FROM t1;</code><br><code>SELECT COUNT(DISTINCT c1) FROM t1 GROUP BY c1;</code></p>
 <p><br></p>
-<p>###2.  <strong><code>Tight Index Scan</code></strong></p>
-<p>紧凑索引扫描可能是全索引扫描或者范围索引扫描，取决于查询条件。</p>
+<h3 id="2-Tight-Index-Scan"><a href="#2-Tight-Index-Scan" class="headerlink" title="2.  Tight Index Scan"></a>2.  <strong><code>Tight Index Scan</code></strong></h3><p>紧凑索引扫描可能是全索引扫描或者范围索引扫描，取决于查询条件。</p>
 <p>当松散索引扫描条件没有满足的时候，group by 仍然有可能避免创建临时表。如果在where条件有范围扫描，那么紧凑索引扫描仅读取满足这些条件的keys（索引元组），否则执行全索引扫描。这种方式读取所有where条件定义的范围内的keys，或者扫描整个索引，因而称作紧凑索引扫描。对于紧凑索引扫描，只有在所有满足范围条件的keys被找到之后才会执行分组操作。</p>
 <p>如果紧凑索引扫描起作用，那么必须满足：在查询中存在常量相等where条件字段（索引中的字段），且该字段在group by指定的字段的前面或者中间。来自于相等条件的常量能够填充搜索keys中的gaps，因而可以构成一个索引的完整前缀。索引前缀能够用于索引查找。如果要求对group by的结果进行排序，并且查找字段组成一个索引前缀，那么MySQL同样可以避免额外的排序操作。</p>
 <p>Assume that there is an index idx(c1,c2,c3) on table t1(c1,c2,c3,c4). The following queries do not work with the loose index scan access method described earlier, but still work with the tight index scan access method.</p>
@@ -222,7 +219,7 @@ possible_keys: d_p_c
         Extra: Using where; Using index
 1 row in set, 1 warning (0.00 sec)
 </code></pre><p><br><br><strong><code>松散索引扫描和紧凑索引扫描的最大区别是是否需要扫描整个索引或者整个范围扫描。</code></strong><br><br><br><br></p>
-</div></article></div></main><footer><div class="paginator"><a href="/2017/08/05/mysql-replication/" class="next">下一篇</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
+</div></article></div></main><footer><div class="paginator"><a href="/2017/08/05/mysql-replication/" class="next">NEXT</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
 var disqus_identifier = '2017/10/19/mysql-optimization-group-by/';
 var disqus_title = 'mysql 优化之 group by';
 var disqus_url = 'https://sonata.life/2017/10/19/mysql-optimization-group-by/';
