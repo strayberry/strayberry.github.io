@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://sonata.life/"/>
-  <updated>2017-10-19T09:35:48.000Z</updated>
+  <updated>2017-10-19T09:49:32.000Z</updated>
   <id>https://sonata.life/</id>
   
   <author>
@@ -16,19 +16,19 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>mysql优化之 group by</title>
+    <title>mysql-optimization-group-by</title>
     <link href="https://sonata.life/2017/10/19/mysql-optimization-group-by/"/>
     <id>https://sonata.life/2017/10/19/mysql-optimization-group-by/</id>
-    <published>2017-10-19T09:00:00.000Z</published>
-    <updated>2017-10-19T09:35:48.000Z</updated>
+    <published>2017-10-19T09:48:30.000Z</published>
+    <updated>2017-10-19T09:49:32.000Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="mysql优化之-group-by"><a href="#mysql优化之-group-by" class="headerlink" title="mysql优化之 group by"></a>mysql优化之 group by</h1><hr>
+    <content type="html"><![CDATA[<h1 id="mysql优化之-group-by"><a href="#mysql优化之-group-by" class="headerlink" title="mysql优化之 group by"></a>mysql优化之 group by</h1><p>标签（空格分隔）： 未分类</p>
+<hr>
 <p>###讲解如何优化之前先说说 <code>EXPLAIN</code> 命令的使用</p>
 <blockquote>
 <p><strong>EXPLAIN 命令简介</strong></p>
 </blockquote>
 <p>MySQL 提供了一个 <code>EXPLAIN</code> 命令， 它可以对 <code>SELECT</code> 语句进行分析, 并输出 <code>SELECT</code> 执行的详细信息, 以供开发人员针对性优化。<br><code>EXPLAIN</code> 命令用法十分简单， 在 <code>SELECT</code> 语句前加上 <code>EXPLAIN</code> 就可以了。</p>
-<a id="more"></a>
 <blockquote>
 <p><strong>准备数据</strong></p>
 </blockquote>
@@ -260,12 +260,7 @@ possible_keys: d_p_c
     
     <summary type="html">
     
-      &lt;h1 id=&quot;mysql优化之-group-by&quot;&gt;&lt;a href=&quot;#mysql优化之-group-by&quot; class=&quot;headerlink&quot; title=&quot;mysql优化之 group by&quot;&gt;&lt;/a&gt;mysql优化之 group by&lt;/h1&gt;&lt;hr&gt;
-&lt;p&gt;###讲解如何优化之前先说说 &lt;code&gt;EXPLAIN&lt;/code&gt; 命令的使用&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;EXPLAIN 命令简介&lt;/strong&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;MySQL 提供了一个 &lt;code&gt;EXPLAIN&lt;/code&gt; 命令， 它可以对 &lt;code&gt;SELECT&lt;/code&gt; 语句进行分析, 并输出 &lt;code&gt;SELECT&lt;/code&gt; 执行的详细信息, 以供开发人员针对性优化。&lt;br&gt;&lt;code&gt;EXPLAIN&lt;/code&gt; 命令用法十分简单， 在 &lt;code&gt;SELECT&lt;/code&gt; 语句前加上 &lt;code&gt;EXPLAIN&lt;/code&gt; 就可以了。&lt;/p&gt;
+      &lt;h1 id=&quot;mysql优化之-group-by&quot;&gt;&lt;a href=&quot;#mysql优化之-group-by&quot; class=&quot;headerlink&quot; title=&quot;mysql优化之 group by&quot;&gt;&lt;/a&gt;mysql优化之 group by&lt;/h1&gt;&lt;p&gt;标签（空格分隔）： 
     
     </summary>
     
@@ -279,7 +274,7 @@ possible_keys: d_p_c
     <link href="https://sonata.life/2017/08/05/mysql-replication/"/>
     <id>https://sonata.life/2017/08/05/mysql-replication/</id>
     <published>2017-08-04T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<h3 id="安装mysql"><a href="#安装mysql" class="headerlink" title="安装mysql"></a>安装mysql</h3><p>创建文件</p>
 <p><code>mkdir /data/mysql/</code></p>
@@ -373,7 +368,7 @@ sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
     <link href="https://sonata.life/2017/02/10/dns-records/"/>
     <id>https://sonata.life/2017/02/10/dns-records/</id>
     <published>2017-02-09T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p>我们在做域名解析时，尤其是很多虚拟主机，大都会使用到 <code>CNAME</code> 解析，独立主机、VPS 则用 A 记录较多，而 URL 转发则会在更换域名时用到，从设置效果来看，都是“解析”到一个“其它” URL 地址，而实际上它们之间还是有些区别的，尤其是 URL 转发和其它两个之间区别很大的。<br><a id="more"></a></p>
 <p>之前阿里云买的万网域名都是用 A 记录直接映射到 ECS 的 IP 地址，<br>万网要实名认证这点太坑，太容易被 whois 。所以这次域名过期后就买了一个 <code>GoDaddy</code> 的域名，而且用了加密邮箱 <code>ProtonMail</code> 来注册。</p>
@@ -430,7 +425,7 @@ ftp.example.com 转发到 ftp.abc.com，而mail.example.com则A记录到mail.abc
     <link href="https://sonata.life/2016/10/28/java-jvm/"/>
     <id>https://sonata.life/2016/10/28/java-jvm/</id>
     <published>2016-10-27T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p><strong>达到的目标</strong><br>知道Java虚拟机的生存周期<br>知道JVM的体系结构<br>知道JVM体系结构中的各个部分<br>能对JVM有个大致清晰的了解</p>
 <p><strong>内容</strong><br>JVM的生命周期<br>JVM的体系结构<br>JVM类加载器<br>JVM执行引擎<br>JVM运行时数据区<br><a id="more"></a></p>
@@ -493,7 +488,7 @@ ftp.example.com 转发到 ftp.abc.com，而mail.example.com则A记录到mail.abc
     <link href="https://sonata.life/2016/07/28/lnmp-nginx-php-debug/"/>
     <id>https://sonata.life/2016/07/28/lnmp-nginx-php-debug/</id>
     <published>2016-07-27T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p>由于一年前挖下的一个坑需要快速完成一个php的项目，于是在闲置了很久的阿里云服务器上装了 <code>lnmp</code> 的集成环境，选用了传言非常优雅的 <code>lumen</code> 框架，踏入了这个坑。<br>而在这个在 <code>lnmp</code> 上调试 <code>lumen</code> 的时候，遇到了各种各样的 <strong>bug</strong> ，下面挑几个讲一下，希望能帮到一些踩了同样坑的人 。<br><a id="more"></a></p>
 <p><strong>1. php弹出下载、不解析的问题</strong></p>
@@ -742,7 +737,7 @@ NOTICE: ready to handle connections
     <link href="https://sonata.life/2016/07/21/git-cmd/"/>
     <id>https://sonata.life/2016/07/21/git-cmd/</id>
     <published>2016-07-20T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<ul>
 <li>本地仓库初始化<br><code>$ git init</code><br><br></li>
@@ -805,7 +800,7 @@ NOTICE: ready to handle connections
     <link href="https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/"/>
     <id>https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/</id>
     <published>2016-07-19T16:00:00.000Z</published>
-    <updated>2017-10-19T09:22:24.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p> <strong>前言</strong><br>学习总是需要时常写文章总结一下，之前是写在<code>Evernote</code>和微信公众号里面，不过没有blog好像又说不过去。<br>但是传统的<code>wordpress</code>的框架对我这个买了域名都懒得解析到服务器上的人实在是太冗余了。<br>于是google了一下，<code>github pages</code> +<code>Jekyll</code> 的呼声很高，尝试了一下，天啦噜，无比顺滑。<br>这个 blog 全部建完，添加上评论功能，加上写这篇文章，一共大概用了一天左右的时间，还算是挺快的了。<br>于是特此总结一下这个光速搭建blog的方法。<br><a id="more"></a><br><strong>主要参考教程</strong><br><a href="http://kresnik.wang/works/tech/2015/06/07/在github-pages网站下用jekyll制作博客教程.html" target="_blank" rel="external">在 GitHub Pages 下用 Jekyll 制作博客</a>（很详细）<br><a href="https://gaohaoyang.github.io/2016/03/12/jekyll-theme-version-2.0/" target="_blank" rel="external">使用 Jekyll 的过程中可能会遇到的一些问题</a><br><a href="http://www.perfectlyrandom.org/2014/06/29/adding-disqus-to-your-jekyll-powered-github-pages/" target="_blank" rel="external">Adding Disqus to your Jekyll</a></p>
 <p><strong>遇到的问题：</strong><br>1.由于找的这个Theme里的图标是png格式的图片，想要换成这个种类更丰富的<a href="http://www.iconfont.cn" target="_blank" rel="external">矢量图标</a> , 不知是不是框架的兼容问题，图标并不能显示，尝试多次后继续使用png中。<br>2.因为 <code>jekyll</code> 升级和端口占用方面遇到的一些问题 ，基本可以根据报错，参照上面的教程2解决。<br>3.<code>DisQus</code> 因为添加的地址是线上的，需要在线上进行测试 。</p>
