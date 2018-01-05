@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://sonata.life/"/>
-  <updated>2017-08-04T09:03:40.000Z</updated>
+  <updated>2017-10-19T10:21:57.000Z</updated>
   <id>https://sonata.life/</id>
   
   <author>
@@ -16,11 +16,256 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>mysql 优化之 group by</title>
+    <link href="https://sonata.life/2017/10/19/mysql-optimization-group-by/"/>
+    <id>https://sonata.life/2017/10/19/mysql-optimization-group-by/</id>
+    <published>2017-10-19T09:48:30.000Z</published>
+    <updated>2017-10-19T10:21:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<hr>
+<h3 id="讲解如何优化之前先说说-EXPLAIN-命令的使用"><a href="#讲解如何优化之前先说说-EXPLAIN-命令的使用" class="headerlink" title="讲解如何优化之前先说说 EXPLAIN 命令的使用"></a>讲解如何优化之前先说说 <code>EXPLAIN</code> 命令的使用</h3><blockquote>
+<p><strong>EXPLAIN 命令简介</strong></p>
+</blockquote>
+<p>MySQL 提供了一个 <code>EXPLAIN</code> 命令， 它可以对 <code>SELECT</code> 语句进行分析, 并输出 <code>SELECT</code> 执行的详细信息, 以供开发人员针对性优化。<br><code>EXPLAIN</code> 命令用法十分简单， 在 <code>SELECT</code> 语句前加上 <code>EXPLAIN</code> 就可以了。</p>
+<a id="more"></a>
+<blockquote>
+<p><strong>准备数据</strong></p>
+</blockquote>
+<pre><code>create table `fh6`(
+    id int primary key auto_increment, 
+    order_date timestamp, 
+    order_price int, 
+    customer varchar(20), 
+    order_channel varchar(20), 
+    key d_p_c(order_date,order_price,customer), 
+    key channel(order_channel), 
+    key customer(customer)
+);
+
+insert into `fh6`
+    (order_date,order_price,customer,order_channel)
+values
+    (CURRENT_TIMESTAMP,200,&apos;Eric&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,300,&apos;Gavin&apos;,&apos;above&apos;),
+    (CURRENT_TIMESTAMP,400,&apos;Stan&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,500,&apos;Alice&apos;,&apos;above&apos;),
+    (CURRENT_TIMESTAMP,600,&apos;Eric&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,700,&apos;Gavin&apos;,&apos;above&apos;),
+    (CURRENT_TIMESTAMP,800,&apos;Stan&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,900,&apos;Alice&apos;,&apos;above&apos;),
+    (CURRENT_TIMESTAMP,1000,&apos;Eric&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,100,&apos;Gavin&apos;,&apos;above&apos;),
+    (CURRENT_TIMESTAMP,200,&apos;Stan&apos;,&apos;below&apos;),
+    (CURRENT_TIMESTAMP,300,&apos;Alice&apos;,&apos;above&apos;);
+
+
+
+create table `fh5`(
+    id int primary key auto_increment, 
+    customer_name varchar(20)
+);
+
+insert into `fh5`
+    (customer_name)
+values
+    (&apos;Eric&apos;),
+    (&apos;Gavin&apos;),
+    (&apos;Stan&apos;),
+    (&apos;Alice&apos;);
+</code></pre><blockquote>
+<p><strong>EXPLAIN 输出格式</strong></p>
+</blockquote>
+<pre><code>mysql&gt; explain select customer,max(order_price) from fh6 group by order_date,order_price\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: fh6
+   partitions: NULL
+         type: index
+possible_keys: d_p_c
+          key: d_p_c
+      key_len: 32
+          ref: NULL
+         rows: 100
+     filtered: 100.00
+        Extra: Using index
+1 row in set, 1 warning (0.00 sec)
+</code></pre><blockquote>
+<p><strong>&nbsp;各列的含义如下:</strong></p>
+</blockquote>
+<ul>
+<li><strong><code>id</code>:</strong>&nbsp; SELECT 查询的标识符. 每个 SELECT 都会自动分配一个唯一的标识符.</li>
+<li><strong><code>select_type</code>:</strong>&nbsp; SELECT 查询的类型.</li>
+<li><strong><code>table</code>:</strong>&nbsp; 查询的是哪个表</li>
+<li><strong><code>partitions</code>:</strong>&nbsp; 匹配的分区</li>
+<li><strong><code>type</code>:</strong>&nbsp; join 类型</li>
+<li><strong><code>possible_keys</code>:</strong>&nbsp; 此次查询中可能选用的索引</li>
+<li><strong><code>key</code>:</strong>&nbsp; 此次查询中确切使用到的索引.</li>
+<li><strong><code>ref</code>:</strong>&nbsp; 哪个字段或常数与 key 一起被使用</li>
+<li><strong><code>rows</code>:</strong>&nbsp; 显示此查询一共扫描了多少行. 这个是一个估计值.</li>
+<li><strong><code>filtered</code>:</strong>&nbsp; 表示此查询条件所过滤的数据的百分比</li>
+<li><strong><code>extra</code>:</strong>&nbsp; 额外的信息</li>
+</ul>
+<p>接下来我们来重点看一下比较重要的几个字段。</p>
+<h3 id="select-type"><a href="#select-type" class="headerlink" title="select_type"></a>select_type</h3><p><strong>select_type</strong> 表示了查询的类型, 它的常用取值有:</p>
+<ul>
+<li><strong><code>SIMPLE</code></strong>, 表示此查询不包含 UNION 查询或子查询 </li>
+<li><strong><code>PRIMARY</code></strong>, 表示此查询是最外层的查询 </li>
+<li><strong><code>UNION</code></strong>, 表示此查询是 UNION 的第二或随后的查询 </li>
+<li><strong><code>DEPENDENT UNION</code></strong>, UNION 中的第二个或后面的查询语句, 取决于外面的查询 </li>
+<li><strong><code>UNION RESULT</code></strong>, UNION 的结果 </li>
+<li><strong><code>SUBQUERY</code></strong>, 子查询中的第一个 SELECT </li>
+<li><strong><code>DEPENDENT SUBQUERY</code></strong>: 子查询中的第一个 SELECT, 取决于外面的查询. 即子查询依赖于外层查询的结果.</li>
+</ul>
+<p>最常见的查询类别应该是 <code>SIMPLE</code> 了, 比如当我们的查询没有子查询, 也没有 <code>UNION</code> 查询时, 那么通常就是 <code>SIMPLE</code> 类型。    </p>
+<h3 id="table"><a href="#table" class="headerlink" title="table"></a>table</h3><p>表示查询涉及的表或衍生表</p>
+<h3 id="type"><a href="#type" class="headerlink" title="type"></a>type</h3><p><strong>type</strong> 字段比较重要, 它提供了判断查询是否高效的重要依据依据. 通过 <strong>type</strong> 字段, 我们判断此次查询是 全表扫描 还是 索引扫描 等.</p>
+<p><strong>type</strong>常用的取值有:</p>
+<ul>
+<li><strong><code>system</code></strong>: 表中只有一条数据. 这个类型是特殊的 <code>const</code> 类型.</li>
+<li><strong><code>const</code></strong>: 针对主键或唯一索引的等值查询扫描, 最多只返回一行数据. <code>const</code> 查询速度非常快, 因为它仅仅读取一次即可.</li>
+<li><strong><code>eq_ref</code></strong>: 此类型通常出现在多表的 join 查询, 表示对于前表的每一个结果, 都只能匹配到后表的一行结果. 并且查询的比较操作通常是 =, 查询效率较高. </li>
+<li><strong><code>ref</code></strong>: 此类型通常出现在多表的 join 查询, 针对于非唯一或非主键索引, 或者是使用了 最左前缀 规则索引的查询. </li>
+<li><strong><code>range</code></strong>: 表示使用索引范围查询, 通过索引字段范围获取表中部分数据记录. 这个类型通常出现在 =, &lt;&gt;, &gt;, &gt;=, &lt;, &lt;=, IS NULL, &lt;=&gt;, BETWEEN, IN() 操作中.<br>当 type 是 range 时, 那么 EXPLAIN 输出的 ref 字段为 NULL, 并且 key_len 字段是此次查询中使用到的索引的最长的那个.</li>
+<li><strong><code>index</code></strong>: 表示全索引扫描(full index scan), 和 ALL 类型类似, 只不过 ALL 类型是全表扫描, 而 index 类型则仅仅扫描所有的索引, 而不扫描数据.<br>index 类型通常出现在: 所要查询的数据直接在索引树中就可以获取到, 而不需要扫描数据. 当是这种情况时, Extra 字段 会显示 Using index.</li>
+<li><strong><code>ALL</code></strong>: 表示全表扫描, 这个类型的查询是性能最差的查询之一. 通常来说, 我们的查询不应该出现 ALL 类型的查询, 因为这样的查询在数据量大的情况下, 对数据库的性能是巨大的灾难. 如一个查询是 ALL 类型查询, 那么一般来说可以对相应的字段添加索引来避免.</li>
+</ul>
+<p><strong>type 类型的性能比较</strong></p>
+<p>通常来说, 不同的 type 类型的性能关系如下:</p>
+<pre><code>ALL &lt; index &lt; range ~ index_merge &lt; ref &lt; eq_ref &lt; const &lt; system
+</code></pre><p><code>ALL</code> 类型因为是全表扫描, 因此在相同的查询条件下, 它是速度最慢的.<br>而 <code>index</code> 类型的查询虽然不是全表扫描, 但是它扫描了所有的索引, 因此比 <code>ALL</code> 类型的稍快.<br>后面的几种类型都是利用了索引来查询数据, 因此可以过滤部分或大部分数据, 因此查询效率就比较高了.</p>
+<h3 id="possible-keys"><a href="#possible-keys" class="headerlink" title="possible_keys"></a>possible_keys</h3><p><code>possible_keys</code> 表示 MySQL 在查询时, 能够使用到的索引. 注意, 即使有些索引在 <code>possible_keys</code> 中出现, 但是并不表示此索引会真正地被 MySQL 使用到. MySQL 在查询时具体使用了哪些索引, 由 <code>key</code> 字段决定.</p>
+<h3 id="key"><a href="#key" class="headerlink" title="key"></a>key</h3><p>此字段是 MySQL 在当前查询时所真正使用到的索引.</p>
+<h3 id="key-len"><a href="#key-len" class="headerlink" title="key_len"></a>key_len</h3><p>表示查询优化器使用了索引的字节数. 这个字段可以评估组合索引是否完全被使用, 或只有最左部分字段被使用到.<br>key_len 的计算规则如下:</p>
+<p><strong><code>字符串</code></strong></p>
+<ol>
+<li>char(n): n 字节长度</li>
+<li>varchar(n): 如果是 utf8 编码, 则是 3 n + 2字节; 如果是 utf8mb4 编码, 则是 4 n + 2 字节.</li>
+</ol>
+<p><strong><code>数值类型</code></strong>:</p>
+<ol>
+<li>TINYINT: 1字节</li>
+<li>SMALLINT: 2字节</li>
+<li>MEDIUMINT: 3字节</li>
+<li>INT: 4字节</li>
+<li>BIGINT: 8字节</li>
+</ol>
+<p><strong><code>时间类型</code></strong></p>
+<ol>
+<li>DATE: 3字节</li>
+<li>TIMESTAMP: 4字节</li>
+<li>DATETIME: 8字节</li>
+</ol>
+<p><strong><code>字段属性</code></strong>: </p>
+<ol>
+<li>NULL 属性 占用1字节. 如果一个字段是 NOT NULL 的, 则没有此属性.</li>
+</ol>
+<h3 id="rows"><a href="#rows" class="headerlink" title="rows"></a>rows</h3><p><code>rows</code> 也是一个重要的字段. MySQL 查询优化器根据统计信息, 估算 SQL 要查找到结果集需要扫描读取的数据行数.<br>这个值非常直观显示 SQL 的效率好坏, 原则上 <code>rows</code> 越少越好.</p>
+<h3 id="Extra"><a href="#Extra" class="headerlink" title="Extra"></a>Extra</h3><p>Explain 中的很多额外的信息会在 Extra 字段显示, 常见的有以下几种内容:</p>
+<ul>
+<li><strong><code>Using filesort</code></strong> 当 Extra 中有 <code>Using filesort</code> 时, 表示 MySQL 需额外的排序操作,  不能通过索引顺序达到排序效果. 一般有 <code>Using filesort</code>, 都建议优化去掉, 因为这样的查询 CPU 资源消耗大.</li>
+<li><strong><code>Using index</code></strong> “覆盖索引扫描”, 表示查询在索引树中就可查找所需数据, 不用扫描表数据文件, 往往说明性能不错</li>
+<li><strong><code>Using temporary</code></strong> 查询有使用临时表, 一般出现于排序, 分组和多表 join 的情况, 查询效率不高, 建议优化.</li>
+</ul>
+<p><br><br><br></p>
+<blockquote>
+<p>通常的应用中，提倡 sql 简单，避免复杂度。         所以一般不会使用 join ，子查询等 sql 语句，间接 GROUP BY 和索引的使用占据大多数。</p>
+</blockquote>
+<p>满足 <code>GROUP BY</code> 语句最一般的方法是扫描整个表然后创建一个新的临时表，表中每个组的所有行的所有行为应该是连续的。然后用这个临时表找到组并应用累积函数（如果有）。在一些情况下，MYSQL 可以利用索引访问来避免创建临时表。</p>
+<p><code>GROUP BY</code>  使用到索引最重要的前提条件是，<code>GROUP BY</code> 所有的参照列（分组依据的列）来自于同一个索引，并且索引按照顺序存储所有的keys（ 即BTREE index，HASH index没有顺序的概念 ）。然而能否使用索引访问来代替临时表也依赖于索引中的哪部分被用于查询，为这些部分指定的条件，和选中的聚合函数。</p>
+<p>MYSQL 有两种方法可以使 <code>GROUP BY</code> 查询通过索引访问，就是下面说的 <code>Loose Index Scan</code> 和 <code>Tight Index Scan</code> 。在 <code>Loose Index Scan</code> 方式下，分组操作和范围预测（如果有的话）一起执行完成的。在 <code>Tight Index Scan</code> 方式下，先对索引执行范围扫描（range scan），再对结果元组进行分组。</p>
+<h3 id="1-Loose-Index-Scan"><a href="#1-Loose-Index-Scan" class="headerlink" title="1. Loose Index Scan"></a>1. <strong><code>Loose Index Scan</code></strong></h3><p> 松散索引扫描相当于Oracle中的跳跃索引扫描（skip index scan），就是不需要连续的扫描索引中得每一个元组，扫描时仅考虑索引中得一部分。当查询中没有where条件的时候，松散索引扫描读取的索引元组的个数和groups的数量相同。如果where条件包含范围预测，松散索引扫描查找每个group中第一个满足范围条件，然后再读取最少可能数的keys。松散索引扫描只需要读取很少量的数据就可以完成group by操作，因而执行效率非常高。使用松散索引扫描需要满足以下条件：</p>
+<ul>
+<li><p>查询在单一表上。</p>
+</li>
+<li><p>group by指定的所有列是索引的一个最左前缀，并且没有其它的列。比如表t1（ c1,c2,c3,c4）上建立了索引（c1,c2,c3）。如果查询包含“group by c1,c2”，那么可以使用松散索引扫描。但是“group by c2,c3”(不是索引最左前缀)和“group by c1,c2,c4”(c4字段不在索引中)。</p>
+</li>
+<li><p>如果在选择列表select list中存在聚集函数，只能使用 min()和max()两个聚集函数，并且指定的是同一列（如果min()和max()同时存在）。这一列必须在索引中，且紧跟着group by指定的列。比如，select t1,t2,min(t3),max(t3) from t1  group by c1,c2。</p>
+</li>
+<li><p>如果查询中存在除了group by指定的列之外的索引其他部分，那么必须以常量的形式出现（除了min()和max()两个聚集函数）。<br>比如，select c1,c3 from t1 group by c1,c2不能使用松散索引扫描。而select c1,c3 from t1 where c3 =  3 group by c1,c2可以使用松散索引扫描。</p>
+</li>
+<li><p>索引中的列必须索引整个数据列的值(full column values must be indexed)，而不是一个前缀索引。比如，c1 varchar(20), INDEX (c1(10)),这个索引没发用作松散索引扫描。<br>(前缀索引，与上面提到的索引的最左前缀是不同的东西)</p>
+</li>
+</ul>
+<p>如果查询能够使用松散索引扫描，那么执行计划中Etra中提示“ using index for group-by”。</p>
+<pre><code>mysql&gt; explain select order_channel from fh6 group by order_channel\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: fh6
+   partitions: NULL
+         type: range
+possible_keys: channel
+          key: channel
+      key_len: 23
+          ref: NULL
+         rows: 3
+     filtered: 100.00
+        Extra: Using index for group-by
+1 row in set, 1 warning (0.01 sec)
+</code></pre><p><br><br>Assume that there is an index idx(c1,c2,c3) on table t1(c1,c2,c3,c4). The loose index scan access method can be used for the following queries:</p>
+<p><code>SELECT c1, c2 FROM t1 GROUP BY c1, c2;</code><br><code>SELECT DISTINCT c1, c2 FROM t1;</code><br><code>SELECT c1, MIN(c2) FROM t1 GROUP BY c1;</code><br><code>SELECT c1, c2 FROM t1 WHERE c1 &lt; const GROUP BY c1, c2;</code><br><code>SELECT MAX(c3), MIN(c3), c1, c2 FROM t1 WHERE c2 &gt; const GROUP BY c1, c2;</code><br><code>SELECT c2 FROM t1 WHERE c1 &lt; const GROUP BY c1, c2;</code><br><code>SELECT c1, c2 FROM t1 WHERE c3 = const GROUP BY c1, c2;</code></p>
+<p>自从5.5开始，松散索引扫描可以作用于在select list中其它形式的聚集函数，除了min()和max()之外，还支持：</p>
+<ul>
+<li><p>AVG(DISTINCT), SUM(DISTINCT)和COUNT(DISTINCT)可以使用松散索引扫描。AVG(DISTINCT), SUM(DISTINCT)只能使用单一列作为参数。而COUNT(DISTINCT)可以使用多列参数。</p>
+</li>
+<li><p>在查询中没有group by和distinct条件。</p>
+</li>
+<li><p>之前声明的松散扫描限制条件同样起作用。<br>下面的查询可以使用松散索引扫描</p>
+</li>
+</ul>
+<p><code>SELECT COUNT(DISTINCT c1), SUM(DISTINCT c1) FROM t1;</code><br><code>SELECT COUNT(DISTINCT c1, c2), COUNT(DISTINCT c2, c1) FROM t1;</code></p>
+<p>下面的查询不能够使用松散索引扫描</p>
+<p><code>SELECT DISTINCT COUNT(DISTINCT c1) FROM t1;</code><br><code>SELECT COUNT(DISTINCT c1) FROM t1 GROUP BY c1;</code></p>
+<p><br></p>
+<h3 id="2-Tight-Index-Scan"><a href="#2-Tight-Index-Scan" class="headerlink" title="2.  Tight Index Scan"></a>2.  <strong><code>Tight Index Scan</code></strong></h3><p>紧凑索引扫描可能是全索引扫描或者范围索引扫描，取决于查询条件。</p>
+<p>当松散索引扫描条件没有满足的时候，group by 仍然有可能避免创建临时表。如果在where条件有范围扫描，那么紧凑索引扫描仅读取满足这些条件的keys（索引元组），否则执行全索引扫描。这种方式读取所有where条件定义的范围内的keys，或者扫描整个索引，因而称作紧凑索引扫描。对于紧凑索引扫描，只有在所有满足范围条件的keys被找到之后才会执行分组操作。</p>
+<p>如果紧凑索引扫描起作用，那么必须满足：在查询中存在常量相等where条件字段（索引中的字段），且该字段在group by指定的字段的前面或者中间。来自于相等条件的常量能够填充搜索keys中的gaps，因而可以构成一个索引的完整前缀。索引前缀能够用于索引查找。如果要求对group by的结果进行排序，并且查找字段组成一个索引前缀，那么MySQL同样可以避免额外的排序操作。</p>
+<p>Assume that there is an index idx(c1,c2,c3) on table t1(c1,c2,c3,c4). The following queries do not work with the loose index scan access method described earlier, but still work with the tight index scan access method.</p>
+<ul>
+<li>There is a gap in the GROUP BY, but it is covered by the condition c2 = ‘a’:<br><code>select c1,c2,c3 from t1 where c2 = ‘a’ group by c1,c3</code></li>
+<li>The GROUP BY does not begin with the first part of the key, but there is a condition that provides a constant for that part:<br><code>select c1,c2,c3 from t1 where c1 = ‘a’ group by c2,c3</code></li>
+</ul>
+<p>使用紧凑索引扫描，执行计划Extra一般显示“using index”，相当于使用了覆盖索引。</p>
+<pre><code>mysql&gt; explain select order_date,order_price,customer from fh6 where order_price = 100 group by order_date,customer\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: fh6
+   partitions: NULL
+         type: index
+possible_keys: d_p_c
+          key: d_p_c
+      key_len: 32
+          ref: NULL
+         rows: 100
+     filtered: 10.00
+        Extra: Using where; Using index
+1 row in set, 1 warning (0.00 sec)
+</code></pre><p><br><br><strong><code>松散索引扫描和紧凑索引扫描的最大区别是是否需要扫描整个索引或者整个范围扫描。</code></strong><br><br><br><br></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;hr&gt;
+&lt;h3 id=&quot;讲解如何优化之前先说说-EXPLAIN-命令的使用&quot;&gt;&lt;a href=&quot;#讲解如何优化之前先说说-EXPLAIN-命令的使用&quot; class=&quot;headerlink&quot; title=&quot;讲解如何优化之前先说说 EXPLAIN 命令的使用&quot;&gt;&lt;/a&gt;讲解如何优化之前先说说 &lt;code&gt;EXPLAIN&lt;/code&gt; 命令的使用&lt;/h3&gt;&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;EXPLAIN 命令简介&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;MySQL 提供了一个 &lt;code&gt;EXPLAIN&lt;/code&gt; 命令， 它可以对 &lt;code&gt;SELECT&lt;/code&gt; 语句进行分析, 并输出 &lt;code&gt;SELECT&lt;/code&gt; 执行的详细信息, 以供开发人员针对性优化。&lt;br&gt;&lt;code&gt;EXPLAIN&lt;/code&gt; 命令用法十分简单， 在 &lt;code&gt;SELECT&lt;/code&gt; 语句前加上 &lt;code&gt;EXPLAIN&lt;/code&gt; 就可以了。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="mysql optimization index" scheme="https://sonata.life/tags/mysql-optimization-index/"/>
+    
+  </entry>
+  
+  <entry>
     <title>mysql 主从环境搭建</title>
     <link href="https://sonata.life/2017/08/05/mysql-replication/"/>
     <id>https://sonata.life/2017/08/05/mysql-replication/</id>
     <published>2017-08-04T16:00:00.000Z</published>
-    <updated>2017-08-04T09:03:40.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<h3 id="安装mysql"><a href="#安装mysql" class="headerlink" title="安装mysql"></a>安装mysql</h3><p>创建文件</p>
 <p><code>mkdir /data/mysql/</code></p>
@@ -114,7 +359,7 @@ sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
     <link href="https://sonata.life/2017/02/10/dns-records/"/>
     <id>https://sonata.life/2017/02/10/dns-records/</id>
     <published>2017-02-09T16:00:00.000Z</published>
-    <updated>2017-08-04T09:03:09.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p>我们在做域名解析时，尤其是很多虚拟主机，大都会使用到 <code>CNAME</code> 解析，独立主机、VPS 则用 A 记录较多，而 URL 转发则会在更换域名时用到，从设置效果来看，都是“解析”到一个“其它” URL 地址，而实际上它们之间还是有些区别的，尤其是 URL 转发和其它两个之间区别很大的。<br><a id="more"></a></p>
 <p>之前阿里云买的万网域名都是用 A 记录直接映射到 ECS 的 IP 地址，<br>万网要实名认证这点太坑，太容易被 whois 。所以这次域名过期后就买了一个 <code>GoDaddy</code> 的域名，而且用了加密邮箱 <code>ProtonMail</code> 来注册。</p>
@@ -171,7 +416,7 @@ ftp.example.com 转发到 ftp.abc.com，而mail.example.com则A记录到mail.abc
     <link href="https://sonata.life/2016/10/28/java-jvm/"/>
     <id>https://sonata.life/2016/10/28/java-jvm/</id>
     <published>2016-10-27T16:00:00.000Z</published>
-    <updated>2017-08-04T09:01:46.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p><strong>达到的目标</strong><br>知道Java虚拟机的生存周期<br>知道JVM的体系结构<br>知道JVM体系结构中的各个部分<br>能对JVM有个大致清晰的了解</p>
 <p><strong>内容</strong><br>JVM的生命周期<br>JVM的体系结构<br>JVM类加载器<br>JVM执行引擎<br>JVM运行时数据区<br><a id="more"></a></p>
@@ -234,7 +479,7 @@ ftp.example.com 转发到 ftp.abc.com，而mail.example.com则A记录到mail.abc
     <link href="https://sonata.life/2016/07/28/lnmp-nginx-php-debug/"/>
     <id>https://sonata.life/2016/07/28/lnmp-nginx-php-debug/</id>
     <published>2016-07-27T16:00:00.000Z</published>
-    <updated>2017-08-04T09:02:57.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p>由于一年前挖下的一个坑需要快速完成一个php的项目，于是在闲置了很久的阿里云服务器上装了 <code>lnmp</code> 的集成环境，选用了传言非常优雅的 <code>lumen</code> 框架，踏入了这个坑。<br>而在这个在 <code>lnmp</code> 上调试 <code>lumen</code> 的时候，遇到了各种各样的 <strong>bug</strong> ，下面挑几个讲一下，希望能帮到一些踩了同样坑的人 。<br><a id="more"></a></p>
 <p><strong>1. php弹出下载、不解析的问题</strong></p>
@@ -483,7 +728,7 @@ NOTICE: ready to handle connections
     <link href="https://sonata.life/2016/07/21/git-cmd/"/>
     <id>https://sonata.life/2016/07/21/git-cmd/</id>
     <published>2016-07-20T16:00:00.000Z</published>
-    <updated>2017-08-04T09:04:32.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<ul>
 <li>本地仓库初始化<br><code>$ git init</code><br><br></li>
@@ -546,7 +791,7 @@ NOTICE: ready to handle connections
     <link href="https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/"/>
     <id>https://sonata.life/2016/07/20/use-jekyll-and-disqus-build-blog/</id>
     <published>2016-07-19T16:00:00.000Z</published>
-    <updated>2017-08-04T09:01:56.000Z</updated>
+    <updated>2017-10-19T09:45:32.000Z</updated>
     
     <content type="html"><![CDATA[<p> <strong>前言</strong><br>学习总是需要时常写文章总结一下，之前是写在<code>Evernote</code>和微信公众号里面，不过没有blog好像又说不过去。<br>但是传统的<code>wordpress</code>的框架对我这个买了域名都懒得解析到服务器上的人实在是太冗余了。<br>于是google了一下，<code>github pages</code> +<code>Jekyll</code> 的呼声很高，尝试了一下，天啦噜，无比顺滑。<br>这个 blog 全部建完，添加上评论功能，加上写这篇文章，一共大概用了一天左右的时间，还算是挺快的了。<br>于是特此总结一下这个光速搭建blog的方法。<br><a id="more"></a><br><strong>主要参考教程</strong><br><a href="http://kresnik.wang/works/tech/2015/06/07/在github-pages网站下用jekyll制作博客教程.html" target="_blank" rel="external">在 GitHub Pages 下用 Jekyll 制作博客</a>（很详细）<br><a href="https://gaohaoyang.github.io/2016/03/12/jekyll-theme-version-2.0/" target="_blank" rel="external">使用 Jekyll 的过程中可能会遇到的一些问题</a><br><a href="http://www.perfectlyrandom.org/2014/06/29/adding-disqus-to-your-jekyll-powered-github-pages/" target="_blank" rel="external">Adding Disqus to your Jekyll</a></p>
 <p><strong>遇到的问题：</strong><br>1.由于找的这个Theme里的图标是png格式的图片，想要换成这个种类更丰富的<a href="http://www.iconfont.cn" target="_blank" rel="external">矢量图标</a> , 不知是不是框架的兼容问题，图标并不能显示，尝试多次后继续使用png中。<br>2.因为 <code>jekyll</code> 升级和端口占用方面遇到的一些问题 ，基本可以根据报错，参照上面的教程2解决。<br>3.<code>DisQus</code> 因为添加的地址是线上的，需要在线上进行测试 。</p>

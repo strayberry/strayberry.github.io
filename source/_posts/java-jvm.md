@@ -189,8 +189,8 @@ JVM采用卡表维护卡的状态，每张卡片在卡表中占用一个字节�
 
 
 
-  [1]: https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image.png
-  [2]: https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image2.png
-  [3]: https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image5.png
-  [4]: https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image6.png
-  [5]: https://raw.githubusercontent.com/strayberry/strayberry_blog/master/pictures/Image7.png
+  [1]: https://raw.githubusercontent.com/strayberry/BlogPictures/master/jvm/image01.png
+  [2]: https://raw.githubusercontent.com/strayberry/BlogPictures/master/jvm/image02.png
+  [3]: https://raw.githubusercontent.com/strayberry/BlogPictures/master/jvm/image03.png
+  [4]: https://raw.githubusercontent.com/strayberry/BlogPictures/master/jvm/image04.png
+  [5]: https://raw.githubusercontent.com/strayberry/BlogPictures/master/jvm/image05.png
