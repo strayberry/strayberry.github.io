@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://sonata.life/"/>
-  <updated>2018-01-05T06:43:26.585Z</updated>
+  <updated>2018-01-09T03:53:00.775Z</updated>
   <id>https://sonata.life/</id>
   
   <author>
@@ -14,6 +14,106 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>git 日常命令（2）</title>
+    <link href="https://sonata.life/2018/01/09/git-cmd-2/"/>
+    <id>https://sonata.life/2018/01/09/git-cmd-2/</id>
+    <published>2018-01-09T03:45:00.000Z</published>
+    <updated>2018-01-09T03:53:00.775Z</updated>
+    
+    <content type="html"><![CDATA[<p>上回主要讲的命令是:<br><strong>本地仓库和远程仓库之间的提交和推送</strong><br><strong>分支的回滚/分支的删除</strong></p>
+<p>那么2018年第一篇更新, 来说说多人协同工作会用到的一些命令：<br><strong>分支相关操作: 创建/切换/合并</strong></p>
+<a id="more"></a>
+<h2 id="git-工作流"><a href="#git-工作流" class="headerlink" title="git 工作流"></a>git 工作流</h2><pre><code>你的本地仓库由 git 维护的三棵“树”组成。第一个是你的 工作目录，它持有实际文件；第二个是 缓存区（Index），它像个缓存区域，临时保存你的改动；最后是 HEAD，指向你最近一次提交后的结果。
+</code></pre><p><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image01.png" alt="此处输入图片的描述"></p>
+<pre><code>事实上，第三个阶段是 commit history 的图。HEAD 一般是指向最新一次 commit 的引用。现在暂时不必究其细节。
+</code></pre><h2 id="git-branch"><a href="#git-branch" class="headerlink" title="git branch"></a>git branch</h2><ul>
+<li>列出仓库中所有分支<br><code>$ git branch</code><br><br></li>
+<li>创建一个名为 &lt; branch &gt; 的分支（不会自动切换到那个分支去）<br><code>$ git branch &lt;branch&gt;</code><br><br></li>
+<li>创建一个名为 &lt; branch &gt; 的分支(不会自动切换到那个分支去)<br><code>$ git branch -d &lt;branch&gt;</code><br><br></li>
+<li>删除指定分支。这是一个安全的操作，Git 会阻止你删除包含未合并更改的分支<br><code>$ git branch -D &lt;branch&gt;</code><br><br></li>
+<li>强制删除指定分支，即使包含未合并更改。如果希望永远删除某条开发线的所有提交，应该用这个命令。<br><code>$ git branch -m &lt;branch&gt;</code><br><br><br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image02.png" alt="此处输入图片的描述"><blockquote>
+<p>注意：<br><strong>分支只是指向提交的指针</strong><br>在 Git 中，分支是你日常开发流程中的一部分。当你想要添加一个新的功能或是修复一个 bug 时, <strong>不管 bug 是大是小</strong> , 你都应该新建一个分支来封装你的修改。这确保了不稳定的代码永远不会被提交到主代码库中，它同时给了你机会，在并入主分支前清理你 feature 分支的历史。( merge bug分支后删除bug分支，可避免无效提交 )</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="git-checkout"><a href="#git-checkout" class="headerlink" title="git checkout"></a>git checkout</h2><ul>
+<li>查看特定分支，分支应该已经通过 git branch 创建。这使得 &lt; existing-branch &gt; 成为当前的分支，并更新工作目录的版本。<br><code>$ git checkout &lt;existing-branch&gt;</code><br><br></li>
+<li>创建并查看 &lt; new-branch &gt;，-b 选项是一个方便的标记，告诉Git在运行 git checkout &lt; new-branch &gt; 之前运行 git branch &lt; new-branch &gt;。<br><code>$ git checkout -b &lt;new-branch&gt;</code><br><br></li>
+<li>列出仓库中所有分支<br><code>$ git branch</code><br><br></li>
+</ul>
+<p><strong>未 commit 当前分支就 checkout 导致「分离 HEAD」的例子:</strong></p>
+<ul>
+<li>当你想要开发新功能时，你创建一个专门的分支，切换过去：<br><code>$ git branch new-feature</code><br><code>$ git checkout new-feature</code><br><br></li>
+<li>接下来，你可以和以往一样提交新的快照：<br><code>$ git add &lt;file&gt;</code><br><code>$ git commit -m &quot;Started work on a new feature&quot;</code><br><br></li>
+<li>当你想要回到「主」代码库时，只要 check out 到 master 分支即可：<br><code>$ git checkout master</code><br><br><br><strong>这时有个警告会告诉你所做的更改和项目的其余历史处于「分离」的状态。</strong>在你开始新的分支之前，告诉你仓库的状态(未提交)。你可以选择并入完成的新功能，或者在你项目稳定的版本上继续工作。</li>
+</ul>
+<h2 id="git-merge"><a href="#git-merge" class="headerlink" title="git merge"></a>git merge</h2><ul>
+<li>将指定分支并入当前分支。Git 会决定使用哪种合并算法。<br><code>$ git merge &lt;branch&gt;</code><br><br> </li>
+<li>将指定分支并入当前分支，但 <em>总是</em> 生成一个合并提交（即使是 <strong>快速向前合并</strong>）。这可以用来记录仓库中发生的所有合并。<br><code>$ git merge --no-ff &lt;branch&gt;</code></li>
+</ul>
+<ol>
+<li>当当前分支顶端到目标分支路径是线性之时，我们可以采取 <strong>快速向前合并</strong> 。Git 只需要将当前分支 HEAD（快速向前地）移动到目标分支顶端，即可整合两个分支的历史，而不需要“真正”合并分支。<br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image03.png" alt="此处输入图片的描述"><br><br></li>
+<li>如果分支已经分叉了，那么就无法进行快速向前合并。当和目标分支之间的路径不是线性之时，Git 只能执行 <strong>三路合并</strong> 。三路合并使用一个专门的提交来合并两个分支的历史。这个术语取自这样一个事实，Git 使用 三个提交来生成合并提交：两个分支顶端和它们共同的祖先。<br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image04.png" alt="此处输入图片的描述"><br><br></li>
+</ol>
+<h2 id="解决冲突"><a href="#解决冲突" class="headerlink" title="解决冲突"></a>解决冲突</h2><p>如果你尝试合并的两个分支同一个文件的同一个部分，Git 将无法决定使用哪个版本。当这种情况发生时，它会停在<strong>合并提交</strong>，让你<strong>手动解决</strong>这些冲突。</p>
+<p>接下来，你可以自己修复这个合并。当你准备结束合并时，你只需<strong>对冲突的文件运行</strong> <code>git add</code> 告诉 Git 冲突已解决。然后，运行 <code>git commit</code> 生成一个合并提交。这和提交一个普通的快照有着完全相同的流程，也就是说，开发者能够轻而易举地管理他们的合并。</p>
+<p><strong>注意</strong>，提交冲突只会出现在三路合并中。在快速向前合并中，我们不可能出现冲突的更改。<br><br></p>
+<h3 id="Examples"><a href="#Examples" class="headerlink" title="Examples:"></a>Examples:</h3><p><strong>快速向前合并</strong></p>
+<pre><code># 开始新功能
+git checkout -b new-feature master
+
+# 编辑文件
+git add &lt;file&gt;
+git commit -m &quot;开始新功能&quot;
+
+# 编辑文件
+git add &lt;file&gt;
+git commit -m &quot;完成功能&quot;
+
+# 合并new-feature分支
+git checkout master
+git merge new-feature
+git branch -d new-feature
+</code></pre><p>对于临时存在、用作独立开发环境而不是组织长期运行功能的工具的分支来说，这是一种常见的工作流。( 如修复bug )</p>
+<p><strong>三路合并</strong></p>
+<pre><code># 开始新功能
+git checkout -b new-feature master
+
+# 编辑文件
+git add &lt;file&gt;
+git commit -m &quot;开始新功能&quot;
+
+# 编辑文件
+git add &lt;file&gt;
+git commit -m &quot;完成功能&quot;
+
+# 在master分支上开发
+git checkout master
+
+# 编辑文件
+git add &lt;file&gt;
+git commit -m &quot;在master上添加了一些极其稳定的功能&quot;
+
+# 合并new-feature分支
+git merge new-feature
+git branch -d new-feature
+</code></pre><p> master 在这个功能开发时取得了新进展。这是复杂功能和多个开发者同时工作时常见的情形。</p>
+<p> 对大多数工作流来说，new-feature 会是一个需要一段时间来开发的复杂功能，这也是为什么同时 master 会有新的提交出现。如果你的分支上的功能像上面的一样简单，你会更想将它 rebase 到 master，使用快速向前合并。它会通过整理项目历史来避免多余的合并提交。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;上回主要讲的命令是:&lt;br&gt;&lt;strong&gt;本地仓库和远程仓库之间的提交和推送&lt;/strong&gt;&lt;br&gt;&lt;strong&gt;分支的回滚/分支的删除&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;那么2018年第一篇更新, 来说说多人协同工作会用到的一些命令：&lt;br&gt;&lt;strong&gt;分支相关操作: 创建/切换/合并&lt;/strong&gt;&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="git cmd" scheme="https://sonata.life/tags/git-cmd/"/>
+    
+  </entry>
   
   <entry>
     <title>mysql 优化之 group by</title>
