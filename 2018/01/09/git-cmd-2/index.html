@@ -7,9 +7,9 @@
 </code></pre><h2 id="git-branch"><a href="#git-branch" class="headerlink" title="git branch"></a>git branch</h2><ul>
 <li>列出仓库中所有分支<br><code>$ git branch</code><br><br></li>
 <li>创建一个名为 &lt; branch &gt; 的分支（不会自动切换到那个分支去）<br><code>$ git branch &lt;branch&gt;</code><br><br></li>
-<li>创建一个名为 &lt; branch &gt; 的分支(不会自动切换到那个分支去)<br><code>$ git branch -d &lt;branch&gt;</code><br><br></li>
-<li>删除指定分支。这是一个安全的操作，Git 会阻止你删除包含未合并更改的分支<br><code>$ git branch -D &lt;branch&gt;</code><br><br></li>
-<li>强制删除指定分支，即使包含未合并更改。如果希望永远删除某条开发线的所有提交，应该用这个命令。<br><code>$ git branch -m &lt;branch&gt;</code><br><br><br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image02.png" alt="此处输入图片的描述"><blockquote>
+<li>删除指定分支。这是一个安全的操作，Git 会阻止你删除包含未合并更改的分支<br><code>$ git branch -d &lt;branch&gt;</code><br><br></li>
+<li>强制删除指定分支，即使包含未合并更改。如果希望永远删除某条开发线的所有提交，应该用这个命令。<br><code>$ git branch -D &lt;branch&gt;</code><br><br></li>
+<li>将当前分支命名为 &lt; branch &gt;<br><code>$ git branch -m &lt;branch&gt;</code><br><br><br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image02.png" alt="此处输入图片的描述"><blockquote>
 <p>注意：<br><strong>分支只是指向提交的指针</strong><br>在 Git 中，分支是你日常开发流程中的一部分。当你想要添加一个新的功能或是修复一个 bug 时, <strong>不管 bug 是大是小</strong> , 你都应该新建一个分支来封装你的修改。这确保了不稳定的代码永远不会被提交到主代码库中，它同时给了你机会，在并入主分支前清理你 feature 分支的历史。( merge bug分支后删除bug分支，可避免无效提交 )</p>
 </blockquote>
 </li>
@@ -77,7 +77,7 @@ git merge new-feature
 git branch -d new-feature
 </code></pre><p> master 在这个功能开发时取得了新进展。这是复杂功能和多个开发者同时工作时常见的情形。</p>
 <p> 对大多数工作流来说，new-feature 会是一个需要一段时间来开发的复杂功能，这也是为什么同时 master 会有新的提交出现。如果你的分支上的功能像上面的一样简单，你会更想将它 rebase 到 master，使用快速向前合并。它会通过整理项目历史来避免多余的合并提交。</p>
-</div></article></div></main><footer><div class="paginator"><a href="/2017/10/19/mysql-optimization-group-by/" class="next">NEXT</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
+</div></article></div></main><footer><div class="paginator"><a href="/2017/10/19/mysql-optimization-group-by/" class="next">下一篇</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
 var disqus_identifier = '2018/01/09/git-cmd-2/';
 var disqus_title = 'git 日常命令（2）';
 var disqus_url = 'https://sonata.life/2018/01/09/git-cmd-2/';

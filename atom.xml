@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://sonata.life/"/>
-  <updated>2018-01-09T03:53:00.775Z</updated>
+  <updated>2018-01-09T08:12:15.703Z</updated>
   <id>https://sonata.life/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="https://sonata.life/2018/01/09/git-cmd-2/"/>
     <id>https://sonata.life/2018/01/09/git-cmd-2/</id>
     <published>2018-01-09T03:45:00.000Z</published>
-    <updated>2018-01-09T03:53:00.775Z</updated>
+    <updated>2018-01-09T08:12:15.703Z</updated>
     
     <content type="html"><![CDATA[<p>上回主要讲的命令是:<br><strong>本地仓库和远程仓库之间的提交和推送</strong><br><strong>分支的回滚/分支的删除</strong></p>
 <p>那么2018年第一篇更新, 来说说多人协同工作会用到的一些命令：<br><strong>分支相关操作: 创建/切换/合并</strong></p>
@@ -31,9 +31,9 @@
 </code></pre><h2 id="git-branch"><a href="#git-branch" class="headerlink" title="git branch"></a>git branch</h2><ul>
 <li>列出仓库中所有分支<br><code>$ git branch</code><br><br></li>
 <li>创建一个名为 &lt; branch &gt; 的分支（不会自动切换到那个分支去）<br><code>$ git branch &lt;branch&gt;</code><br><br></li>
-<li>创建一个名为 &lt; branch &gt; 的分支(不会自动切换到那个分支去)<br><code>$ git branch -d &lt;branch&gt;</code><br><br></li>
-<li>删除指定分支。这是一个安全的操作，Git 会阻止你删除包含未合并更改的分支<br><code>$ git branch -D &lt;branch&gt;</code><br><br></li>
-<li>强制删除指定分支，即使包含未合并更改。如果希望永远删除某条开发线的所有提交，应该用这个命令。<br><code>$ git branch -m &lt;branch&gt;</code><br><br><br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image02.png" alt="此处输入图片的描述"><blockquote>
+<li>删除指定分支。这是一个安全的操作，Git 会阻止你删除包含未合并更改的分支<br><code>$ git branch -d &lt;branch&gt;</code><br><br></li>
+<li>强制删除指定分支，即使包含未合并更改。如果希望永远删除某条开发线的所有提交，应该用这个命令。<br><code>$ git branch -D &lt;branch&gt;</code><br><br></li>
+<li>将当前分支命名为 &lt; branch &gt;<br><code>$ git branch -m &lt;branch&gt;</code><br><br><br><img src="https://raw.githubusercontent.com/strayberry/BlogPictures/master/git/image02.png" alt="此处输入图片的描述"><blockquote>
 <p>注意：<br><strong>分支只是指向提交的指针</strong><br>在 Git 中，分支是你日常开发流程中的一部分。当你想要添加一个新的功能或是修复一个 bug 时, <strong>不管 bug 是大是小</strong> , 你都应该新建一个分支来封装你的修改。这确保了不稳定的代码永远不会被提交到主代码库中，它同时给了你机会，在并入主分支前清理你 feature 分支的历史。( merge bug分支后删除bug分支，可避免无效提交 )</p>
 </blockquote>
 </li>
