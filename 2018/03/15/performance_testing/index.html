@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="English"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> Performance Testing · berry's blog</title><meta name="description" content="Performance Testing - Berry Yan"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://strayberry.github.io/atom.xml" title="berry's blog"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="https://twitter.com/Spring_Sonata_" target="_blank" class="nav-list-link">TWITTER</a></li><li class="nav-list-item"><a href="https://github.com/strayberry" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">Performance Testing</h1><div class="post-info">Mar 15, 2018</div><div class="post-content"><p>随着部门人手的增加，终于有了一些时间可以做性能测试，需要对分布式数据库中间件做一个压测，把得到的结果当作一个基线，来比较版本之间的性能变化。<br>在学习和实战中，慢慢发现，对性能测试的理解并不如自己想的那么清晰，对基本概念和理论的混淆，导致对测试结果的不够自信，过程中也走了很多弯路。</p>
 <p>所以这一次，一起梳理下性能测试的基本理论和实践过程。<br><br></p>
 <a id="more"></a>
-<p>##负载测试、压力测试和性能测试的异同<br><strong>负载测试（Load testing）</strong>、<strong>压力测试（Stress Testing）</strong>和性能测试<strong>（Performance Testing）</strong>，这三个概念常常引起混淆，难以区分，从而造成不正确的理解和错误的使用。之前也有不少讨论，比较有名的，应归为 Grig Gheorghiu’s 的两篇博客：</p>
+<p>##负载测试、压力测试和性能测试的异同##<br><strong>负载测试（Load testing）</strong>、<strong>压力测试（Stress Testing）</strong>和性能测试<strong>（Performance Testing）</strong>，这三个概念常常引起混淆，难以区分，从而造成不正确的理解和错误的使用。之前也有不少讨论，比较有名的，应归为 Grig Gheorghiu’s 的两篇博客：</p>
 <ul>
 <li><a href="http://agiletesting.blogspot.com/2005/02/performance-vs-load-vs-stress-testing.html" target="_blank" rel="external">Performance vs. load vs. stress testing</a> </li>
 <li><a href="http://agiletesting.blogspot.com/2005/04/more-on-performance-vs-load-testing.html" target="_blank" rel="external">More on performance vs. load testing</a></li>
@@ -12,7 +12,7 @@
 <li><strong>性能测试</strong>是为获取或验证系统性能指标而进行测试。多数情况下，性能测试会在不同负载情况下进行。</li>
 <li><strong>压力测试</strong>通常是在高负载情况下来对系统的稳定性进行测试，更有效地发现系统稳定性的隐患和系统在负载峰值的条件下功能隐患等。</li>
 </ul>
-<p>##性能调优<br>系统是否具有高性能的运行特征，不仅取决于系统本身的设计和程序算法，而且取决于系统的运行环境。系统的运行环境会依赖于一些关键因素，例如：</p>
+<p>##性能调优##<br>系统是否具有高性能的运行特征，不仅取决于系统本身的设计和程序算法，而且取决于系统的运行环境。系统的运行环境会依赖于一些关键因素，例如：</p>
 <ul>
 <li><strong>系统架构</strong>，如分布式服务器集群还是集中式主机系统等。 硬件配置，如服务器的配置，CPU、内存等配置越高，系统的性能会越好。</li>
 <li><strong>网络带宽</strong>，随着带宽的提高，客户端访问服务器的速度会有较大的改善。</li>
@@ -20,8 +20,8 @@
 <li><strong>外部负载</strong>，同时有多少个用户连接、用户上载文件大小、数据库中的记录数等都会对系统的性能有影响。一般来说，系统负载越大，系统的性能会降低。</li>
 </ul>
 <p>从上面可以看出，使系统的性能达到一个最好的状态，不仅通过对处在特定环境下的系统进行测试以完成相关的验证，而且往往要根据测试的结果，对系统的设计、代码和配置等进行调整，提高系统的性能。许多时候，系统性能的改善是测试、调整、再测试、再调整、……一个持续改进的过程，这就是我们经常说的<strong>性能调优（perormance tuning）</strong>。</p>
-<p>##系统性能描述<br>描述一个系统的性能从来不是一句话或是一个数值的事。在IEEE的定义中：<strong>性能是系统或组件在给定约束中实现的指定功能的程度，诸如速度、正确性、内存使用等。</strong><br>所以性能测试报告中，对系统性能的描述应该是多方面的，如：<strong>执行效率、稳定性、兼容行、可靠性、可扩展性容量等</strong>；其中，执行效率通过<strong>并发用户数、响应时间、吞吐量、成功率、资源消耗</strong>综合体现。</p>
-<p>##并发</p>
+<p>##系统性能描述##<br>描述一个系统的性能从来不是一句话或是一个数值的事。在IEEE的定义中：<strong>性能是系统或组件在给定约束中实现的指定功能的程度，诸如速度、正确性、内存使用等。</strong><br>所以性能测试报告中，对系统性能的描述应该是多方面的，如：<strong>执行效率、稳定性、兼容行、可靠性、可扩展性容量等</strong>；其中，执行效率通过<strong>并发用户数、响应时间、吞吐量、成功率、资源消耗</strong>综合体现。</p>
+<p>##并发##</p>
 <p>长连接压测的并发大概有三种方法：  </p>
 <ol>
 <li>单进程单线程进行串行执行，进行多进程并发；        </li>
@@ -33,7 +33,7 @@
 <p>“<strong>广义的并发实际上是在一个时间内操作事务的虚拟用户</strong>，而<strong>狭义的并发指的是单位时间内向系统发起请求的虚拟用户</strong>，前者是“存在”，后者是“请求”，勿容置疑，压力不仅仅受成功发出请求的用户带来的压力，同时也受“存在”的用户影响。”</p>
 </blockquote>
 <p>这样看来，工具中的线程数设置，更偏像是广义并发，代表着在压测时间段内虚拟用户总数，这也是并发原始值。<br>而在后续的压测过程中，在单位时间内，并发数可能会动态变化，这里是狭义并发。<br>当工具产生的压力远未到系统性能瓶颈时，理论上，狭义并发=广义并发=工具线程数；当压力增加，系统响应时间增长，部分线程的请求处理正常，部分线程可能请求超时，那么同一单位时间内，同时向系统发起请求的用户数就不等于线程数了。</p>
-<p>##吞吐量的计算</p>
+<p>##吞吐量的计算##</p>
 <p>在性能测试中，吞吐量的计算有两种常见的公式：</p>
 <blockquote>
 <p>公式1： 吞吐量=并发数/平均响应时间<br>公式2： 吞吐量=请求总数/总时长</p>
@@ -47,7 +47,7 @@
 <li>在<strong>单接口压测</strong>时，我们用“<strong>请求总数/总时长</strong>”得到吞吐量；然后再用“吞吐量*平均响应时间”得到实际并发，此举可用来观察系统实际承受的并发；</li>
 <li>在<strong>多接口压测</strong>时，由于短板效应，同一个流程中的所有接口获得的请求总数和总时长都一样，显然“请求总数/总时长”计算各个子接口的吞吐量不合适，所以改用“<strong>并发/平均响应时间</strong>”，其中的并发数应在压测工具中埋点统计，不可简单使用工具线程数。</li>
 </ol>
-<p>##最佳线程数</p>
+<p>##最佳线程数##</p>
 <blockquote>
 <p>性能压测的情况下，起初随着并发量的增加， QPS 会上升，当到了一定的阈值之后，并发量增加 QPS 并不会增加，或者增加不明显，同时请求的响应时间却大幅增加。这个阈值我们认为是<strong>最佳线程数</strong>。</p>
 </blockquote>
@@ -55,7 +55,7 @@
 <pre><code>服务器端最佳线程数量 = ((线程等待时间+线程cpu时间)/线程cpu时间) * cpu数量
 </code></pre><p>有两种极端，纯 <code>IO</code> 的应用，比如 proxy ，则线程数量可以开到非常大（实在太大了则需要考虑线程切换的开销），这种应用基本上后端（比如这个 proxy 是代理搜索的）的 QPS 能有多少，proxy 就有多少。<br>另一种是耗 <code>CPU</code> 的计算，这种情况一般来讲只能开到 CPU 个数的线程数量。但是并不是说这种应用的 QPS 就不高，往往这种应用的 QPS 可以很高。</p>
 <p>这里测试的数据库中间件的 QPS 瓶颈显然是 <code>IO</code> 而不是 CPU ，所以这里通过调整连接池的配置，可以极大的提高 QPS 。</p>
-<p>##实践过程</p>
+<p>##实践过程##</p>
 <p>这里使用的压测工具是 <code>sysbench</code> ，监控工具是 <code>nmon</code> 。</p>
 <ul>
 <li>先进行<strong>性能调优</strong>：<ol>
@@ -80,7 +80,7 @@
 </li>
 </ul>
 <p>到这里，一个完整的性能测试才完成了。</p>
-<p>##最后<br>对实践过程说的比较简略，因为这里主要是针对性能测试的理论和方法，而不是性能测试工具的使用。这些内容具体可以去网上搜 <code>sysbench</code> 的教程和 <code>nmon</code> 的教程，就不详述了。</p>
+<p>##最后##<br>对实践过程说的比较简略，因为这里主要是针对性能测试的理论和方法，而不是性能测试工具的使用。这些内容具体可以去网上搜 <code>sysbench</code> 的教程和 <code>nmon</code> 的教程，就不详述了。</p>
 <p><br></p>
 <p><strong>参考文献：</strong><br>负载测试、压力测试和性能测试的异同<br><a href="http://blog.csdn.net/kerryzhu/article/details/3515714" target="_blank" rel="external">http://blog.csdn.net/kerryzhu/article/details/3515714</a><br>早知道早幸福——从压测工具谈并发、压力、吞吐量<br><a href="http://wetest.qq.com/lab/view/177.html" target="_blank" rel="external">http://wetest.qq.com/lab/view/177.html</a></p>
 </div></article></div></main><footer><div class="paginator"><a href="/2018/01/09/git-cmd-2/" class="next">NEXT</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'strayberry';
