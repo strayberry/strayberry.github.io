@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <rect width="1600" height="900" fill="#F9FCFF"/>
+  <rect x="90" y="90" width="1420" height="720" rx="24" fill="white" stroke="#DBE8FF" stroke-width="2"/>
+  <path d="M180 230H1420" stroke="#E6EFFF"/>
+  <path d="M180 380H1420" stroke="#E6EFFF"/>
+  <path d="M180 530H1420" stroke="#E6EFFF"/>
+  <path d="M180 680H1420" stroke="#E6EFFF"/>
+  <rect x="260" y="250" width="160" height="400" rx="14" fill="#CFE1FF"/>
+  <rect x="470" y="300" width="160" height="350" rx="14" fill="#B8D2FF"/>
+  <rect x="680" y="360" width="160" height="290" rx="14" fill="#9FC3FF"/>
+  <rect x="890" y="420" width="160" height="230" rx="14" fill="#82B2FF"/>
+  <rect x="1100" y="500" width="160" height="150" rx="14" fill="#5A95FF"/>
+  <path d="M260 720L1260 720" stroke="#1D5CD8" stroke-width="4"/>
+  <text x="170" y="170" fill="#0A2F78" font-size="54" font-family="'Segoe UI', sans-serif" font-weight="700">ActTaylor</text>
+  <text x="170" y="780" fill="#3565AF" font-size="30" font-family="'Segoe UI', sans-serif">Activation-aware structured pruning for efficient LLM deployment</text>
+</svg>
